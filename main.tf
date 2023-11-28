@@ -1,6 +1,6 @@
 data "boundary_scope" "org" {
   scope_id = "global"
-  name = "tfo-apj-demos"
+  name = "tfo_apj_demos"
 }
 
 data "boundary_scope" "project" {
