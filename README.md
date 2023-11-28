@@ -9,7 +9,7 @@
 
 | Name | Version |
 |------|---------|
-| <a name="provider_boundary"></a> [boundary](#provider\_boundary) | ~> 1.1 |
+| <a name="provider_boundary"></a> [boundary](#provider\_boundary) | 1.1.10 |
 
 ## Modules
 
@@ -29,10 +29,10 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_brokered_credential_library_ids"></a> [brokered\_credential\_library\_ids](#input\_brokered\_credential\_library\_ids) | Existing credential libraries that you want to assign to the target. Should only be used with TCP connections. | `list(string)` | n/a | yes |
+| <a name="input_brokered_credential_library_ids"></a> [brokered\_credential\_library\_ids](#input\_brokered\_credential\_library\_ids) | Existing credential libraries that you want to assign to the target. Should only be used with TCP connections. | `list(string)` | `[]` | no |
 | <a name="input_host_catalog_id"></a> [host\_catalog\_id](#input\_host\_catalog\_id) | The existing id of the host catalog to register the hosts to. | `string` | n/a | yes |
 | <a name="input_hostname_prefix"></a> [hostname\_prefix](#input\_hostname\_prefix) | A prefix to use for the Boundary host set. | `string` | n/a | yes |
-| <a name="input_hosts"></a> [hosts](#input\_hosts) | The hosts to register as targets. | <pre>list(object({<br>    hostname = string<br>    address = string<br>  }))</pre> | n/a | yes |
+| <a name="input_hosts"></a> [hosts](#input\_hosts) | The hosts to register as Boundary targets. | <pre>list(object({<br>    hostname = string<br>    address = string<br>  }))</pre> | n/a | yes |
 | <a name="input_injected_credential_library_ids"></a> [injected\_credential\_library\_ids](#input\_injected\_credential\_library\_ids) | Existing credential libraries that you want to assign to the target. Should only be used with SSH connections. | `list(string)` | `[]` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | The Boundary project name in which to create the targets and associated resources. | `string` | n/a | yes |
 | <a name="input_services"></a> [services](#input\_services) | A list of services to create targets for. Each combination of hosts and service will result in a unique target. | <pre>list(object({<br>    name = string<br>    type = string<br>    port = number<br>  }))</pre> | n/a | yes |

@@ -7,6 +7,7 @@ variable "injected_credential_library_ids" {
 variable "brokered_credential_library_ids" {
   type = list(string)
   description = "Existing credential libraries that you want to assign to the target. Should only be used with TCP connections."
+  default = []
 }
 
 variable "host_catalog_id" {
