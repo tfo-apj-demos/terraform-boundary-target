@@ -41,3 +41,14 @@ variable "project_name" {
   type = string
   description = "The Boundary project name in which to create the targets and associated resources."
 }
+
+variable "vault_address" {
+  type = string
+}
+
+variable "ldap_credential_library" {
+  description = "Determines if the LDAP credential library should be created"
+  type        = bool
+  default     = false
+}
+

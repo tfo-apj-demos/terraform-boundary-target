@@ -41,4 +41,3 @@ resource "boundary_target" "this" {
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
-
