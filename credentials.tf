@@ -5,7 +5,8 @@ resource "vault_token" "this" {
   policies = [
     "default",
     "sign_ssh_certificate",
-    "revoke_lease"
+    "revoke_lease",
+    "ldap_reader"
   ]
   lifecycle {
     ignore_changes = all 
@@ -13,7 +14,7 @@ resource "vault_token" "this" {
 }
 
 resource "boundary_credential_store_vault" "this" {
-    name        = "HCP Vault"
+  name        = "HCP Vault"
   address     = var.vault_address
   token       = vault_token.this.client_token
   namespace   = "admin/tfo-apj-demos"
