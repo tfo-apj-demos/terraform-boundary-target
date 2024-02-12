@@ -17,7 +17,7 @@ resource "boundary_credential_store_vault" "this" {
   address     = var.vault_address
   token       = vault_token.this.client_token
   namespace   = "admin/tfo-apj-demos"
-  scope_id    = boundary_scope.project.id
+  scope_id    = data.boundary_scope.project.id
 }
 
 resource "boundary_credential_library_vault" "ldap_creds" {
