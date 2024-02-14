@@ -20,6 +20,7 @@ resource "boundary_credential_store_vault" "this" {
   address   = var.vault_address
   token     = vault_token.this.client_token
   namespace = "admin/tfo-apj-demos"
+  tls_skip_verify = true
   
   worker_filter = "\"vmware\" in \"/tags/platform\""
   
