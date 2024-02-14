@@ -1,23 +1,28 @@
 resource "vault_token" "this" {
-  period = 7200
+  period    = 7200
   renewable = true
   no_parent = true
   policies = [
     "default",
     "sign_ssh_certificate",
-    "revoke_lease"
+    "revoke_lease",
+    "ldap_reader"
   ]
   lifecycle {
-    ignore_changes = all 
+    ignore_changes = all
   }
 }
 
 resource "boundary_credential_store_vault" "this" {
-    name        = "HCP Vault"
-  address     = var.vault_address
-  token       = vault_token.this.client_token
-  namespace   = "admin/tfo-apj-demos"
-  scope_id    = data.boundary_scope.project.id
+  name      = "GCVE Vault"
+  scope_id  = data.boundary_scope.project.id
+
+  address   = var.vault_address
+  token     = vault_token.this.client_token
+  namespace = "admin/tfo-apj-demos"
+  
+  worker_filter = "\"vmware\" in \"/tags/platform\""
+  
 }
 
 resource "boundary_credential_library_vault" "ldap_creds" {
