@@ -1,5 +1,5 @@
 resource "vault_token" "this" {
-  period = 7200
+  period    = 7200
   renewable = true
   no_parent = true
   policies = [
@@ -9,16 +9,18 @@ resource "vault_token" "this" {
     "ldap_reader"
   ]
   lifecycle {
-    ignore_changes = all 
+    ignore_changes = all
   }
 }
 
 resource "boundary_credential_store_vault" "this" {
-  name        = "HCP Vault"
-  address     = var.vault_address
-  token       = vault_token.this.client_token
-  namespace   = "admin/tfo-apj-demos"
-  scope_id    = data.boundary_scope.project.id
+  name      = "HCP Vault"
+  address   = var.vault_address
+  token     = vault_token.this.client_token
+  namespace = "admin/tfo-apj-demos"
+  scope_id  = data.boundary_scope.project.id
+  worker_filter = "\"vmware\" in \"/tags/platform\""
+
 }
 
 resource "boundary_credential_library_vault" "ldap_creds" {
