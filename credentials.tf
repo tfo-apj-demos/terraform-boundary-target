@@ -14,13 +14,15 @@ resource "vault_token" "this" {
 }
 
 resource "boundary_credential_store_vault" "this" {
-  name      = "HCP Vault"
+  name      = "GCVE Vault"
+  scope_id  = data.boundary_scope.project.id
+
   address   = var.vault_address
   token     = vault_token.this.client_token
   namespace = "admin/tfo-apj-demos"
-  scope_id  = data.boundary_scope.project.id
+  
   worker_filter = "\"vmware\" in \"/tags/platform\""
-
+  
 }
 
 resource "boundary_credential_library_vault" "ldap_creds" {
