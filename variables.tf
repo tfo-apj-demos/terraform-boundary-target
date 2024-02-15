@@ -25,6 +25,7 @@ variable "services" {
     name = string
     type = string
     port = number
+    credential_paths = optional(list(string))
   }))
   description = "A list of services to create targets for. Each combination of hosts and service will result in a unique target."
 }
@@ -44,6 +45,12 @@ variable "project_name" {
 
 variable "vault_address" {
   type = string
+  default = ""
+}
+
+variable "vault_namespace" {
+  type = string
+  default = ""
 }
 
 variable "ldap_credential_library" {
