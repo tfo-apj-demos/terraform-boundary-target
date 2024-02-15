@@ -26,8 +26,12 @@ resource "boundary_host_set_static" "this" {
 }
 
 resource "boundary_target" "this" {
-  for_each     = { for service in var.services: service.name => service }
-  name         = "${each.value.name}_${var.hostname_prefix}"
+  for_each = [ 
+    for service in var.services: { 
+      for credential_path in service.credential_paths: element(split("/", credential_path), length(split("/", credential_path))-1) => service
+    }
+  ]
+  name         = "${each.key}_${var.hostname_prefix}"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
@@ -36,8 +40,9 @@ resource "boundary_target" "this" {
     boundary_host_set_static.this.id
   ]
 
-  injected_application_credential_source_ids = each.value.type != "ssh" ? null : var.injected_credential_library_ids
-  brokered_credential_source_ids             = each.value.type == "ssh" ? null : var.brokered_credential_library_ids
+  injected_application_credential_source_ids =  each.value.type == "tcp" ? boundary_credential_library_vault.this[each.key].id : null
+  # injected_application_credential_source_ids = each.value.type != "ssh" ? null : var.injected_credential_library_ids
+  # brokered_credential_source_ids             = each.value.type == "ssh" ? null : var.brokered_credential_library_ids
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
@@ -76,3 +81,8 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
+
+#split("/", "postgres/creds/ws-x6gGqCdYqx2z97FH-read")[-1]
+#element(split("/", credential_path), length(split("/", credential_path))-1)
+# [ for service in { name = "postgres", type = "tcp", port = "5432", credential_paths = ["postgres/creds/ws-x6gGqCdYqx2z97FH-read"] } : { for credential_path in service.credential_paths: credential_path => service if service.type == "tcp"  } ]
+# { name = "postgres", type = "tcp", port = "5432", credential_paths = ["postgres/creds/ws-x6gGqCdYqx2z97FH-read"] }
