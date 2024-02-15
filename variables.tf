@@ -59,7 +59,7 @@ variable "ldap_credential_library" {
   default     = false
 }
 
-variable "boundary_vault_token" {
+variable "credential_store_token" {
   type = string
   default = ""
 }

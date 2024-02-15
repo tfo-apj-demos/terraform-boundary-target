@@ -49,7 +49,7 @@ resource "boundary_target" "this" {
 
 resource "boundary_credential_store_vault" "this" {
   name = var.boundary_credential_store_vault_name
-  token = var.boundary_vault_token
+  token = var.credential_store_token
   scope_id = data.boundary_scope.project.id
   address = var.vault_address
   namespace = var.vault_namespace != "" ? var.vault_namespace : null
