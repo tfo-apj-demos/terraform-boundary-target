@@ -67,7 +67,7 @@ resource "boundary_credential_library_vault" "this" {
   for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
 
   path = each.value.credential_path
-  credential_store_id = boundary_credential_store_vault.this
+  credential_store_id = boundary_credential_store_vault.this.id
 }
 
 
