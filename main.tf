@@ -47,10 +47,12 @@ resource "boundary_target" "this" {
     boundary_host_set_static.this.id
   ]
 
-  injected_application_credential_source_ids =  [
+  brokered_credential_source_ids =  [
     each.value.type == "tcp" ? boundary_credential_library_vault.this[each.key].id : null
   ]
-  # injected_application_credential_source_ids = each.value.type != "ssh" ? null : var.injected_credential_library_ids
+  injected_application_credential_source_ids = [
+    each.value.type == "ssh" ? boundary_credential_library_vault.this[each.key].id : null
+  ]
   # brokered_credential_source_ids             = each.value.type == "ssh" ? null : var.brokered_credential_library_ids
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
