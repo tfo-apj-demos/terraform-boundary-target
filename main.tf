@@ -47,12 +47,12 @@ resource "boundary_target" "this" {
     boundary_host_set_static.this.id
   ]
 
-  brokered_credential_source_ids =  [
-    each.value.type == "tcp" ? boundary_credential_library_vault.this[each.key].id : null
-  ]
-  injected_application_credential_source_ids = [
-    each.value.type == "ssh" ? boundary_credential_library_vault.this[each.key].id : null
-  ]
+  brokered_credential_source_ids = each.value.type == "tcp" ? [
+    boundary_credential_library_vault.this[each.key].id
+  ] : null
+  injected_application_credential_source_ids = each.value.type == "ssh" ? [
+    boundary_credential_library_vault.this[each.key].id 
+  ] : null
   # brokered_credential_source_ids             = each.value.type == "ssh" ? null : var.brokered_credential_library_ids
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
@@ -70,7 +70,7 @@ resource "boundary_credential_store_vault" "this" {
 }
 
 resource "boundary_credential_library_vault" "this" {
-  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
+  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service if service.type == "tcp" }
 
   path = each.value.credential_path
   credential_store_id = boundary_credential_store_vault.this.id
