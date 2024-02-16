@@ -73,3 +73,8 @@ variable "tls_skip_verify_vault_server" {
   type = bool
   default = false
 }
+
+variable "vault_ca_cert" {
+  type = string
+  default = ""
+}
