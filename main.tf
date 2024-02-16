@@ -63,6 +63,7 @@ resource "boundary_credential_store_vault" "this" {
   address = var.vault_address
   namespace = var.vault_namespace != "" ? var.vault_namespace : null
   worker_filter = "\"vmware\" in \"/tags/platform\""
+  tls_skip_verify = var.tls_skip_verify_vault_server
 }
 
 resource "boundary_credential_library_vault" "this" {

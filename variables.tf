@@ -68,3 +68,8 @@ variable "boundary_credential_store_vault_name" {
   type = string
   default = ""
 }
+
+variable "tls_skip_verify_vault_server" {
+  type = bool
+  default = false
+}
