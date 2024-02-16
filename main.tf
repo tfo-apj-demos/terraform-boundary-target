@@ -1,3 +1,14 @@
+locals {
+  service_by_credential_path = flatten([ for service in var.services: [
+      for credential_path in service.credential_paths: {
+        name = service.name,
+        type = service.type,
+        port = service.port
+        credential_path = credential_path
+      }]
+  ])
+}
+
 data "boundary_scope" "org" {
   scope_id = "global"
   name = "tfo_apj_demos"
@@ -26,11 +37,7 @@ resource "boundary_host_set_static" "this" {
 }
 
 resource "boundary_target" "this" {
-  for_each = toset([
-    for service in var.services: {
-      for credential_path in service.credential_paths: element(split("/", credential_path), length(split("/", credential_path))-1) => service...
-    }
-  ])
+  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
   name         = "${each.key}_${var.hostname_prefix}"
   type         = each.value.type
   default_port = each.value.port
@@ -57,12 +64,7 @@ resource "boundary_credential_store_vault" "this" {
 }
 
 resource "boundary_credential_library_vault" "this" {
-  #for_each = { for service in var.services: service.name => service if service.type == "tcp" }
-  for_each = toset([
-    for service in var.services: {
-      for credential_path in service.credential_paths: element(split("/", credential_path), length(split("/", credential_path))-1) => service...
-    }
-  ])
+  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
 
   path = each.value.credential_path
   credential_store_id = boundary_credential_store_vault.this
@@ -80,9 +82,3 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
     permit-pty = ""
   }
 }
-
-
-#split("/", "postgres/creds/ws-x6gGqCdYqx2z97FH-read")[-1]
-#element(split("/", credential_path), length(split("/", credential_path))-1)
-# [ for service in { name = "postgres", type = "tcp", port = "5432", credential_paths = ["postgres/creds/ws-x6gGqCdYqx2z97FH-read"] } : { for credential_path in service.credential_paths: credential_path => service if service.type == "tcp"  } ]
-# { name = "postgres", type = "tcp", port = "5432", credential_paths = ["postgres/creds/ws-x6gGqCdYqx2z97FH-read"] }
