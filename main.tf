@@ -38,7 +38,7 @@ resource "boundary_host_set_static" "this" {
 
 resource "boundary_target" "this" {
   for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
-  name         = "${each.key}_${var.hostname_prefix}"
+  name         = "${each.key}-${var.hostname_prefix}"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
