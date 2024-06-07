@@ -79,9 +79,9 @@ resource "boundary_credential_library_vault" "this" {
 
 
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
-  for_each = { for service in var.services: service.name => service if service.type == "ssh" }
+  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service if service.type == "ssh" }
   name = "SSH Key Signing"
-  path = "ssh/sign/boundary"
+  path = each.value.credential_path
   username = "ubuntu" #"{{.User.Name}}"
   key_type            = "ed25519"
   credential_store_id = boundary_credential_store_vault.this.id
