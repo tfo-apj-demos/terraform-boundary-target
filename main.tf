@@ -19,11 +19,17 @@ data "boundary_scope" "project" {
   name = var.project_name
 }
 
+resource "boundary_host_catalog_static" "this" {
+  name        = "GCVE Host Catalog"
+  description = "GCVE Host Catalog Demo"
+  scope_id    = boundary_scope.project.id
+}
+
 resource "boundary_host_static" "this" {
   for_each = { for host in var.hosts: host.hostname => host }
   type            = "static"
   name            = each.value.hostname
-  host_catalog_id = var.host_catalog_id
+  host_catalog_id = boundary_host_catalog_static.this.id
   address         = each.value.address
 }
 
