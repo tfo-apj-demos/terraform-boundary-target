@@ -10,11 +10,6 @@ variable "brokered_credential_library_ids" {
   default     = []
 }
 
-variable "host_catalog_id" {
-  type        = string
-  description = "The existing id of the host catalog to register the hosts to."
-}
-
 variable "hostname_prefix" {
   type        = string
   description = "A prefix to use for the Boundary host set."

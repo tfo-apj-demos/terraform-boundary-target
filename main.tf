@@ -36,7 +36,7 @@ resource "boundary_host_static" "this" {
 resource "boundary_host_set_static" "this" {
   type            = "static"
   name            = "${var.hostname_prefix}-servers"
-  host_catalog_id = var.host_catalog_id
+  host_catalog_id = boundary_host_catalog_static.this.id
 
   host_ids = [ for v in boundary_host_static.this: v.id ]
 
