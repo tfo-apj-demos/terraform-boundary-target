@@ -20,7 +20,7 @@ data "boundary_scope" "project" {
 }
 
 resource "boundary_host_catalog_static" "this" {
-  name        = "GCVE Host Catalog"
+  name        = "GCVE Host Catalog for ${var.hostname_prefix}"
   description = "GCVE Host Catalog Demo"
   scope_id    = data.boundary_scope.project.id
 }
