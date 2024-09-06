@@ -79,7 +79,7 @@ resource "boundary_credential_library_vault" "this" {
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
   for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), service.name)
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
   }
 
   name                = "SSH Key Signing"
@@ -107,16 +107,11 @@ resource "boundary_target" "this" {
     boundary_host_set_static.this.id
   ]
 
-  brokered_credential_source_ids = each.value.type == "tcp" ? (
-    contains(keys(var.existing_vault_credential_library_ids), each.key)
-      ? [var.existing_vault_credential_library_ids[each.key]]
-      : [boundary_credential_library_vault.this[each.key].id]
-  ) : null
-
+  # Conditional logic to reference existing SSH credential library or create a new one
   injected_application_credential_source_ids = each.value.type == "ssh" ? (
     contains(keys(var.existing_ssh_credential_library_ids), each.key)
-      ? [var.existing_ssh_credential_library_ids[each.key]]
-      : [lookup(boundary_credential_library_vault_ssh_certificate.this, each.key, null).id]
+      ? [var.existing_ssh_credential_library_ids[each.key]]  # Use existing SSH credential library
+      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]  # Create a new one
   ) : null
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
