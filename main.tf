@@ -1,22 +1,22 @@
 locals {
-  service_by_credential_path = flatten([ for service in var.services: [
-      for credential_path in service.credential_paths: {
-        name = service.name,
-        type = service.type,
-        port = service.port
-        credential_path = credential_path
-      }]
+  service_by_credential_path = flatten([for service in var.services : [
+    for credential_path in service.credential_paths : {
+      name            = service.name,
+      type            = service.type,
+      port            = service.port
+      credential_path = credential_path
+    }]
   ])
 }
 
 data "boundary_scope" "org" {
   scope_id = "global"
-  name = "tfo_apj_demos"
+  name     = "tfo_apj_demos"
 }
 
 data "boundary_scope" "project" {
   scope_id = data.boundary_scope.org.id
-  name = var.project_name
+  name     = var.project_name
 }
 
 resource "boundary_host_catalog_static" "this" {
@@ -26,7 +26,7 @@ resource "boundary_host_catalog_static" "this" {
 }
 
 resource "boundary_host_static" "this" {
-  for_each = { for host in var.hosts: host.hostname => host }
+  for_each        = { for host in var.hosts : host.hostname => host }
   type            = "static"
   name            = each.value.hostname
   host_catalog_id = boundary_host_catalog_static.this.id
@@ -38,59 +38,102 @@ resource "boundary_host_set_static" "this" {
   name            = "${var.hostname_prefix}-servers"
   host_catalog_id = boundary_host_catalog_static.this.id
 
-  host_ids = [ for v in boundary_host_static.this: v.id ]
+  host_ids = [for v in boundary_host_static.this : v.id]
 
 }
 
 resource "boundary_target" "this" {
-  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service }
+  for_each     = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+  }
   name         = "${each.key}-${var.hostname_prefix}"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
-  
+
   host_source_ids = [
     boundary_host_set_static.this.id
   ]
 
-  brokered_credential_source_ids = each.value.type == "tcp" ? [
-    boundary_credential_library_vault.this[each.key].id
-  ] : null
-  injected_application_credential_source_ids = each.value.type == "ssh" ? [
-    boundary_credential_library_vault_ssh_certificate.this[each.key].id 
-  ] : null
-  
+  brokered_credential_source_ids = each.value.type == "tcp" ? (
+    contains(keys(var.existing_vault_credential_library_ids), each.key)
+      ? [data.boundary_credential_library_vault.existing[each.key].id]
+      : [boundary_credential_library_vault.this[each.key].id]
+  ) : null
+
+  injected_application_credential_source_ids = each.value.type == "ssh" ? (
+    contains(keys(var.existing_ssh_credential_library_ids), each.key)
+      ? [data.boundary_credential_library_vault_ssh_certificate.existing[each.key].id]
+      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]
+  ) : null
+
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
 
+
 resource "boundary_credential_store_vault" "this" {
-  name = var.boundary_credential_store_vault_name
-  token = var.credential_store_token
-  scope_id = data.boundary_scope.project.id
-  address = var.vault_address
-  namespace = var.vault_namespace != "" ? var.vault_namespace : null
-  worker_filter = "\"vmware\" in \"/tags/platform\""
+  count = var.existing_vault_credential_store_id != "" ? 0 : 1
+
+  name            = var.boundary_credential_store_vault_name
+  token           = var.credential_store_token
+  scope_id        = data.boundary_scope.project.id
+  address         = var.vault_address
+  namespace       = var.vault_namespace != "" ? var.vault_namespace : null
+  worker_filter   = "\"vmware\" in \"/tags/platform\""
   tls_skip_verify = var.tls_skip_verify_vault_server
-  ca_cert = var.vault_ca_cert != "" ? var.vault_ca_cert : null
+  ca_cert         = var.vault_ca_cert != "" ? var.vault_ca_cert : null
 }
 
+data "boundary_credential_store_vault" "existing" {
+  count = var.existing_vault_credential_store_id != "" ? 1 : 0
+
+  id = var.existing_vault_credential_store_id
+}
+
+
 resource "boundary_credential_library_vault" "this" {
-  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service if service.type == "tcp" }
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "tcp" && !contains(keys(var.existing_vault_credential_library_ids), service.name)
+  }
 
-  path = each.value.credential_path
-  credential_store_id = boundary_credential_store_vault.this.id
+  path                = each.value.credential_path
+  credential_store_id = var.existing_vault_credential_store_id != "" ? data.boundary_credential_store_vault.existing.id : boundary_credential_store_vault.this.id
+}
 
+# Reference existing vault credential libraries
+data "boundary_credential_library_vault" "existing" {
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "tcp" && contains(keys(var.existing_vault_credential_library_ids), service.name)
+  }
+
+  id = var.existing_vault_credential_library_ids[each.value.name]
 }
 
 
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
-  for_each = { for service in local.service_by_credential_path: element(split("/", service.credential_path), length(split("/", service.credential_path))-1) => service if service.type == "ssh" }
-  name = "SSH Key Signing"
-  path = each.value.credential_path
-  username = "ubuntu" #"{{.User.Name}}"
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), service.name)
+  }
+
+  name                = "SSH Key Signing"
+  path                = each.value.credential_path
+  username            = "ubuntu"
   key_type            = "ed25519"
-  credential_store_id = boundary_credential_store_vault.this.id
+  credential_store_id = var.existing_vault_credential_store_id != "" ? data.boundary_credential_store_vault.existing.id : boundary_credential_store_vault.this.id
   extensions = {
     permit-pty = ""
   }
+}
+
+# Reference existing SSH credential libraries
+data "boundary_credential_library_vault_ssh_certificate" "existing" {
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "ssh" && contains(keys(var.existing_ssh_credential_library_ids), service.name)
+  }
+
+  id = var.existing_ssh_credential_library_ids[each.value.name]
 }
