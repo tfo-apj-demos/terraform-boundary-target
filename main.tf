@@ -116,7 +116,7 @@ resource "boundary_target" "this" {
   injected_application_credential_source_ids = each.value.type == "ssh" ? (
     contains(keys(var.existing_ssh_credential_library_ids), each.key)
       ? [var.existing_ssh_credential_library_ids[each.key]]
-      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]
+      : [lookup(boundary_credential_library_vault_ssh_certificate.this, each.key, null).id]
   ) : null
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
