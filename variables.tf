@@ -75,19 +75,19 @@ variable "vault_ca_cert" {
 }
 
 variable "existing_vault_credential_store_id" {
-  description = "Optional: ID of an existing Vault credential store to reference. If provided, the module will not create a new credential store."
+  description = "Optional: ID of an existing Vault credential store. If provided, the module will not create a new credential store."
   type        = string
   default     = ""
 }
 
 variable "existing_vault_credential_library_ids" {
-  description = "Optional: Map of existing credential library IDs by service name (for TCP). If provided, the module will not create new credential libraries for those services."
+  description = "Optional: Map of existing Vault credential library IDs by service name. If provided, the module will not create new credential libraries for those services."
   type        = map(string)
   default     = {}
 }
 
 variable "existing_ssh_credential_library_ids" {
-  description = "Optional: Map of existing SSH credential library IDs by service name (for SSH). If provided, the module will not create new SSH credential libraries for those services."
+  description = "Optional: Map of existing SSH credential library IDs by service name. If provided, the module will not create new SSH credential libraries for those services."
   type        = map(string)
   default     = {}
 }
