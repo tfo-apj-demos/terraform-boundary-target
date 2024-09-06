@@ -61,7 +61,7 @@ resource "boundary_host_set_static" "this" {
   name            = "${var.hostname_prefix}-servers"
   host_catalog_id = boundary_host_catalog_static.this.id
 
-  host_ids = [for v in boundary_host_static.this : v.id]
+  host_ids = [for host in boundary_host_static.this : host.id]
 }
 
 # Conditionally create a new Vault credential library for TCP services
