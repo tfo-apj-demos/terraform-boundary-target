@@ -84,7 +84,7 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 
   name                = "SSH Key Signing"
   path                = each.value.credential_path
-  username            = "ubuntu" # Or you could make this dynamic
+  username            = "ubuntu"
   key_type            = "ed25519"
   credential_store_id = local.credential_store_id
   extensions = {
