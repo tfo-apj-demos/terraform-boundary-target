@@ -17,9 +17,9 @@ variable "hostname_prefix" {
 
 variable "services" {
   type = list(object({
-    name = string
-    type = string
-    port = number
+    name             = string
+    type             = string
+    port             = number
     credential_paths = optional(list(string))
   }))
   description = "A list of services to create targets for. Each combination of hosts and service will result in a unique target."
@@ -39,12 +39,12 @@ variable "project_name" {
 }
 
 variable "vault_address" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "vault_namespace" {
-  type = string
+  type    = string
   default = ""
 }
 
@@ -55,21 +55,39 @@ variable "ldap_credential_library" {
 }
 
 variable "credential_store_token" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "boundary_credential_store_vault_name" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "tls_skip_verify_vault_server" {
-  type = bool
+  type    = bool
   default = false
 }
 
 variable "vault_ca_cert" {
-  type = string
+  type    = string
   default = ""
+}
+
+variable "existing_vault_credential_store_id" {
+  description = "Optional: ID of an existing Vault credential store to reference. If provided, the module will not create a new credential store."
+  type        = string
+  default     = ""
+}
+
+variable "existing_vault_credential_library_ids" {
+  description = "Optional: Map of existing credential library IDs by service name (for TCP). If provided, the module will not create new credential libraries for those services."
+  type        = map(string)
+  default     = {}
+}
+
+variable "existing_ssh_credential_library_ids" {
+  description = "Optional: Map of existing SSH credential library IDs by service name (for SSH). If provided, the module will not create new SSH credential libraries for those services."
+  type        = map(string)
+  default     = {}
 }
