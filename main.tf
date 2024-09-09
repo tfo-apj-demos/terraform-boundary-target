@@ -95,17 +95,18 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 
 # Boundary target definition
 resource "boundary_target" "this" {
-  for_each = { for service in var.services :
-    service.name => service  # Use service.name directly as the key
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
   }
 
-  name         = "${var.hostname_prefix}_access"  # Use the service.name for the key in the target name
+  name         = "${var.hostname_prefix}_access"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
 
   host_source_ids = [boundary_host_set_static.this.id]
 
+  # Conditional logic to reference existing SSH credential library or create a new one
   injected_application_credential_source_ids = each.value.type == "ssh" ? (
     contains(keys(var.existing_ssh_credential_library_ids), each.key)
       ? [var.existing_ssh_credential_library_ids[each.key]]
@@ -114,4 +115,3 @@ resource "boundary_target" "this" {
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
-
