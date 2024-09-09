@@ -1,5 +1,8 @@
 # Local Variables
 locals {
+  # Check if any service requires a credential path
+  services_needing_creds = length(flatten([for service in var.services : service.credential_paths != null ? service.credential_paths : []])) > 0
+
   # Flattening service credentials for easier iteration
   service_by_credential_path = flatten([for service in var.services : [
     for credential_path in (service.credential_paths != null ? service.credential_paths : []) : {
@@ -10,8 +13,8 @@ locals {
     }]
   ])
 
-  # Use the passed existing Vault credential store ID, or fallback to the newly created one
-  credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
+  # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
+  credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
 }
 
 # Data Sources to get the organizational and project scopes
@@ -27,9 +30,9 @@ data "boundary_scope" "project" {
 
 # Resources
 
-# Conditionally create the Vault credential store only if it doesn’t exist
+# Conditionally create the Vault credential store only if it doesn’t exist and credentials are needed
 resource "boundary_credential_store_vault" "this" {
-  count           = var.existing_vault_credential_store_id == "" ? 1 : 0
+  count           = local.services_needing_creds && var.existing_vault_credential_store_id == "" ? 1 : 0
   name            = var.boundary_credential_store_vault_name
   token           = var.credential_store_token
   scope_id        = data.boundary_scope.project.id
