@@ -14,7 +14,8 @@ locals {
   credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
 
   # Use the passed existing host catalog ID, or fallback to the newly created one
-  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this.id
+  #host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this.id
+  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this[0].id
 }
 
 # Resources

@@ -9,10 +9,9 @@ output "service_keys" {
 }
 
 output "host_catalog_id" {
-  description = "The ID of the host catalog, either provided or created."
+  description = "The ID of the host catalog, either passed or created."
   value = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this[0].id
 }
-
 
 output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
