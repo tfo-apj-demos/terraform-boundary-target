@@ -33,9 +33,9 @@ variable "hosts" {
   description = "The hosts to register as Boundary targets."
 }
 
-variable "scope_id" {
-  description = "The scope ID to use for resources in the project."
+variable "project_name" {
   type        = string
+  description = "The Boundary project name in which to create the targets and associated resources."
 }
 
 variable "vault_address" {

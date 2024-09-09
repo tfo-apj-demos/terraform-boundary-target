@@ -43,7 +43,7 @@ resource "boundary_credential_store_vault" "this" {
 # Host catalog for static hosts
 resource "boundary_host_catalog_static" "this" {
   name        = "GCVE Host Catalog for ${var.hostname_prefix}"
-  description = "GCVE Host Catalog Demo"
+  description = "Host Catalog ${var.hostname_prefix}"
   scope_id    = data.boundary_scope.project.id
 }
 
