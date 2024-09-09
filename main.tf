@@ -1,5 +1,6 @@
 # Local Variables
 locals {
+  # Flattening service credentials for easier iteration
   service_by_credential_path = flatten([for service in var.services : [
     for credential_path in service.credential_paths : {
       name            = service.name,
@@ -9,11 +10,11 @@ locals {
     }]
   ])
 
-  # Use the passed existing Vault credential store ID or fallback to the created one
+  # Use the passed existing Vault credential store ID, or fallback to the newly created one
   credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
 }
 
-# Data Sources
+# Data Sources to get the organizational and project scopes
 data "boundary_scope" "org" {
   scope_id = "global"
   name     = "tfo_apj_demos"
@@ -26,7 +27,7 @@ data "boundary_scope" "project" {
 
 # Resources
 
-# Conditionally create the Vault credential store if it doesn't exist
+# Conditionally create the Vault credential store only if it doesn’t exist
 resource "boundary_credential_store_vault" "this" {
   count           = var.existing_vault_credential_store_id == "" ? 1 : 0
   name            = var.boundary_credential_store_vault_name
@@ -46,7 +47,7 @@ resource "boundary_host_catalog_static" "this" {
   scope_id    = data.boundary_scope.project.id
 }
 
-# Define static hosts
+# Define static hosts, mapped by hostname
 resource "boundary_host_static" "this" {
   for_each        = { for host in var.hosts : host.hostname => host }
   type            = "static"
@@ -55,13 +56,12 @@ resource "boundary_host_static" "this" {
   address         = each.value.address
 }
 
-# Host set for static hosts
+# Host set for static hosts, mapping them to the catalog
 resource "boundary_host_set_static" "this" {
   type            = "static"
   name            = "${var.hostname_prefix}-servers"
   host_catalog_id = boundary_host_catalog_static.this.id
-
-  host_ids = [for host in boundary_host_static.this : host.id]
+  host_ids        = [for host in boundary_host_static.this : host.id]
 }
 
 # Conditionally create a new Vault credential library for TCP services
@@ -77,16 +77,16 @@ resource "boundary_credential_library_vault" "this" {
 
 # Conditionally create a new SSH credential library
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
-  for_each = { for service in local.service_by_credential_path :
-    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
+  for_each = { for service in var.services :
+    service.name => service
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), service.name)
   }
 
   name                = "SSH Key Signing"
-  path                = each.value.credential_path
-  username            = "ubuntu"
+  path                = each.value.credential_paths[0]
+  username            = "ubuntu"  # Dynamically changeable based on user needs
   key_type            = "ed25519"
-  credential_store_id = local.credential_store_id
+  credential_store_id = var.existing_vault_credential_store_id
   extensions = {
     permit-pty = ""
   }
@@ -94,7 +94,7 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 
 # Boundary target definition
 resource "boundary_target" "this" {
-  for_each     = { for service in local.service_by_credential_path :
+  for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
   }
 
@@ -103,15 +103,13 @@ resource "boundary_target" "this" {
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
 
-  host_source_ids = [
-    boundary_host_set_static.this.id
-  ]
+  host_source_ids = [boundary_host_set_static.this.id]
 
   # Conditional logic to reference existing SSH credential library or create a new one
   injected_application_credential_source_ids = each.value.type == "ssh" ? (
     contains(keys(var.existing_ssh_credential_library_ids), each.key)
-      ? [var.existing_ssh_credential_library_ids[each.key]]  # Use existing SSH credential library
-      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]  # Create a new one
+      ? [var.existing_ssh_credential_library_ids[each.key]]
+      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]
   ) : null
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
