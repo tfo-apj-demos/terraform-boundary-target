@@ -99,7 +99,7 @@ resource "boundary_target" "this" {
     service.name => service  # Use service.name directly as the key
   }
 
-  name         = "${var.hostname_prefix}-access"  # Use the service.name for the key in the target name
+  name         = "${var.hostname_prefix}_access"  # Use the service.name for the key in the target name
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
