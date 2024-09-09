@@ -2,7 +2,7 @@
 locals {
   # Flattening service credentials for easier iteration
   service_by_credential_path = flatten([for service in var.services : [
-    for credential_path in service.credential_paths : {
+    for credential_path in (service.credential_paths != null ? service.credential_paths : []) : {
       name            = service.name,
       type            = service.type,
       port            = service.port
