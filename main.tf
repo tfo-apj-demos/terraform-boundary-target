@@ -13,6 +13,13 @@ locals {
     }]
   ])
 
+  # Services that don't need credential paths
+  service_without_creds = [for service in var.services : {
+    name = service.name
+    type = service.type
+    port = service.port
+  } if service.credential_paths == null]
+
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
 }
@@ -99,26 +106,28 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
-
-# Boundary target definition
+# Boundary target definition that handles both services with and without credentials
 resource "boundary_target" "this" {
-  for_each = { for service in local.service_by_credential_path :
-    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-  }
+  for_each = merge(
+    { for service in local.service_by_credential_path : 
+      element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    },
+    { for service in local.service_without_creds : 
+      service.name => service 
+    }
+  )
 
-  name         = "${var.hostname_prefix}_access"
+  name         = "${var.hostname_prefix}_${each.key}_access"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
 
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Conditional logic to reference existing SSH credential library or create a new one
-  injected_application_credential_source_ids = each.value.type == "ssh" ? (
-    contains(keys(var.existing_ssh_credential_library_ids), each.key)
-      ? [var.existing_ssh_credential_library_ids[each.key]]
-      : [boundary_credential_library_vault_ssh_certificate.this[each.key].id]
-  ) : null
+  # Conditional logic to handle injected credentials only when available
+  injected_application_credential_source_ids = (
+    each.value.type == "ssh" && lookup(each.value, "credential_path", null) != null
+  ) ? [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate.this[each.key].id)] : null
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
