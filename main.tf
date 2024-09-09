@@ -2,7 +2,7 @@
 locals {
   # Flattening service credentials for easier iteration
   service_by_credential_path = flatten([for service in var.services : [
-    for credential_path in (service.credential_paths != null ? service.credential_paths : []) : {
+    for credential_path in service.credential_paths : {
       name            = service.name,
       type            = service.type,
       port            = service.port
@@ -12,9 +12,17 @@ locals {
 
   # Use the passed existing Vault credential store ID, or fallback to the newly created one
   credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
+}
 
-  # Use the passed existing host catalog ID, or fallback to the newly created one
-  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this["create"].id
+# Data Sources to get the organizational and project scopes
+data "boundary_scope" "org" {
+  scope_id = "global"
+  name     = "tfo_apj_demos"
+}
+
+data "boundary_scope" "project" {
+  scope_id = data.boundary_scope.org.id
+  name     = var.project_name
 }
 
 # Resources
@@ -24,7 +32,7 @@ resource "boundary_credential_store_vault" "this" {
   count           = var.existing_vault_credential_store_id == "" ? 1 : 0
   name            = var.boundary_credential_store_vault_name
   token           = var.credential_store_token
-  scope_id        = var.scope_id
+  scope_id        = data.boundary_scope.project.id
   address         = var.vault_address
   namespace       = var.vault_namespace != "" ? var.vault_namespace : null
   worker_filter   = "\"vmware\" in \"/tags/platform\""
@@ -32,12 +40,11 @@ resource "boundary_credential_store_vault" "this" {
   ca_cert         = var.vault_ca_cert != "" ? var.vault_ca_cert : null
 }
 
-# Conditionally create the host catalog if `host_catalog_id` is not provided
+# Host catalog for static hosts
 resource "boundary_host_catalog_static" "this" {
-  for_each    = var.host_catalog_id == null ? { "create" = "create" } : {}
   name        = "GCVE Host Catalog for ${var.hostname_prefix}"
   description = "GCVE Host Catalog Demo"
-  scope_id    = var.scope_id
+  scope_id    = data.boundary_scope.project.id
 }
 
 # Define static hosts, mapped by hostname
@@ -45,7 +52,7 @@ resource "boundary_host_static" "this" {
   for_each        = { for host in var.hosts : host.hostname => host }
   type            = "static"
   name            = each.value.hostname
-  host_catalog_id = local.host_catalog_id
+  host_catalog_id = boundary_host_catalog_static.this.id
   address         = each.value.address
 }
 
@@ -53,7 +60,7 @@ resource "boundary_host_static" "this" {
 resource "boundary_host_set_static" "this" {
   type            = "static"
   name            = "${var.hostname_prefix}-servers"
-  host_catalog_id = local.host_catalog_id
+  host_catalog_id = boundary_host_catalog_static.this.id
   host_ids        = [for host in boundary_host_static.this : host.id]
 }
 
@@ -85,6 +92,7 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
+
 # Boundary target definition
 resource "boundary_target" "this" {
   for_each = { for service in local.service_by_credential_path :
@@ -94,7 +102,7 @@ resource "boundary_target" "this" {
   name         = "${var.hostname_prefix}_access"
   type         = each.value.type
   default_port = each.value.port
-  scope_id     = var.scope_id
+  scope_id     = data.boundary_scope.project.id
 
   host_source_ids = [boundary_host_set_static.this.id]
 
