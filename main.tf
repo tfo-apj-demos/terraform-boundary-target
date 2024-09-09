@@ -14,7 +14,7 @@ locals {
   credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
 
   # Use the passed existing host catalog ID, or fallback to the newly created one
-  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this.id
+  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this["create"].id
 }
 
 # Resources
@@ -34,17 +34,10 @@ resource "boundary_credential_store_vault" "this" {
 
 # Conditionally create the host catalog if `host_catalog_id` is not provided
 resource "boundary_host_catalog_static" "this" {
+  for_each    = var.host_catalog_id == null ? { "create" = "create" } : {}
   name        = "GCVE Host Catalog for ${var.hostname_prefix}"
   description = "GCVE Host Catalog Demo"
   scope_id    = var.scope_id
-
-  # Conditionally add the block if host_catalog_id is not provided
-  dynamic "catalog" {
-    for_each = var.host_catalog_id == null ? [1] : []
-    content {
-      # Content to be included when creating the host catalog
-    }
-  }
 }
 
 # Define static hosts, mapped by hostname
@@ -52,7 +45,7 @@ resource "boundary_host_static" "this" {
   for_each        = { for host in var.hosts : host.hostname => host }
   type            = "static"
   name            = each.value.hostname
-  host_catalog_id = local.host_catalog_id  # Use the local variable for the host catalog ID
+  host_catalog_id = local.host_catalog_id
   address         = each.value.address
 }
 
@@ -60,7 +53,7 @@ resource "boundary_host_static" "this" {
 resource "boundary_host_set_static" "this" {
   type            = "static"
   name            = "${var.hostname_prefix}-servers"
-  host_catalog_id = local.host_catalog_id  # Use the local variable for the host catalog ID
+  host_catalog_id = local.host_catalog_id
   host_ids        = [for host in boundary_host_static.this : host.id]
 }
 
