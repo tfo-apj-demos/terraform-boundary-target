@@ -33,14 +33,17 @@ data "boundary_scope" "project" {
 # Conditionally create the Vault credential store only if it doesn’t exist and credentials are needed
 resource "boundary_credential_store_vault" "this" {
   count           = local.services_needing_creds && var.existing_vault_credential_store_id == "" ? 1 : 0
-  name            = var.boundary_credential_store_vault_name
-  token           = var.credential_store_token
+  
   scope_id        = data.boundary_scope.project.id
+  name            = "Credential Store for ${var.hostname_prefix}"
+  
   address         = var.vault_address
+  token           = var.credential_store_token
   namespace       = var.vault_namespace != "" ? var.vault_namespace : null
-  worker_filter   = "\"vmware\" in \"/tags/platform\""
   tls_skip_verify = var.tls_skip_verify_vault_server
   ca_cert         = var.vault_ca_cert != "" ? var.vault_ca_cert : null
+
+  worker_filter   = "\"vmware\" in \"/tags/platform\""
 }
 
 # Host catalog for static hosts
@@ -74,6 +77,7 @@ resource "boundary_credential_library_vault" "this" {
     if service.type == "tcp" && !contains(keys(var.existing_vault_credential_library_ids), service.name)
   }
 
+  name                = "Credential Library for ${each.value.name}"  # Custom name based on the service name
   path                = each.value.credential_path
   credential_store_id = local.credential_store_id
 }
