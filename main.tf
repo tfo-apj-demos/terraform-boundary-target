@@ -24,7 +24,7 @@ resource "boundary_credential_store_vault" "this" {
   count           = var.existing_vault_credential_store_id == "" ? 1 : 0
   name            = var.boundary_credential_store_vault_name
   token           = var.credential_store_token
-  scope_id        = data.boundary_scope.project.id
+  scope_id        = var.scope_id
   address         = var.vault_address
   namespace       = var.vault_namespace != "" ? var.vault_namespace : null
   worker_filter   = "\"vmware\" in \"/tags/platform\""
@@ -37,7 +37,7 @@ resource "boundary_host_catalog_static" "this" {
   count       = var.host_catalog_id == null ? 1 : 0  # Create catalog only if no `host_catalog_id` is passed
   name        = "GCVE Host Catalog for ${var.hostname_prefix}"
   description = "GCVE Host Catalog Demo"
-  scope_id    = data.boundary_scope.project.id
+  scope_id    = var.scope_id
 }
 
 # Define static hosts, mapped by hostname
@@ -94,7 +94,7 @@ resource "boundary_target" "this" {
   name         = "${var.hostname_prefix}_access"
   type         = each.value.type
   default_port = each.value.port
-  scope_id     = data.boundary_scope.project.id
+  scope_id     = var.scope_id
 
   host_source_ids = [boundary_host_set_static.this.id]
 
