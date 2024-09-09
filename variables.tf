@@ -33,11 +33,6 @@ variable "hosts" {
   description = "The hosts to register as Boundary targets."
 }
 
-variable "project_name" {
-  type        = string
-  description = "The Boundary project name in which to create the targets and associated resources."
-}
-
 variable "vault_address" {
   type    = string
   default = ""
