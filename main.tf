@@ -14,7 +14,7 @@ locals {
   credential_store_id = var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id
 
   # Use the passed existing host catalog ID, or fallback to the newly created one
-  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this[0].id
+  host_catalog_id = var.host_catalog_id != null ? var.host_catalog_id : boundary_host_catalog_static.this.id
 }
 
 # Data Sources to get the organizational and project scopes
@@ -43,20 +43,17 @@ resource "boundary_credential_store_vault" "this" {
   ca_cert         = var.vault_ca_cert != "" ? var.vault_ca_cert : null
 }
 
-# Conditionally create the host catalog if `host_catalog_id` is not provided
 resource "boundary_host_catalog_static" "this" {
-  count       = var.host_catalog_id == null ? 1 : 0  # Create catalog only if no `host_catalog_id` is passed
   name        = "GCVE Host Catalog for ${var.hostname_prefix}"
   description = "GCVE Host Catalog Demo"
-  scope_id    = data.boundary_scope.project.id
+  scope_id    = data.boundary_scope.project_scope.id
 }
 
-# Define static hosts, mapped by hostname
 resource "boundary_host_static" "this" {
   for_each        = { for host in var.hosts : host.hostname => host }
   type            = "static"
   name            = each.value.hostname
-  host_catalog_id = local.host_catalog_id  # Use the local variable for the host catalog ID
+  host_catalog_id = local.host_catalog_id
   address         = each.value.address
 }
 
