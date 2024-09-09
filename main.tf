@@ -77,20 +77,21 @@ resource "boundary_credential_library_vault" "this" {
 
 # Conditionally create a new SSH credential library
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
-  for_each = { for service in var.services :
-    service.name => service
-    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), service.name)
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
   }
 
   name                = "SSH Key Signing"
-  path                = each.value.credential_paths[0]
-  username            = "ubuntu"  # Dynamically changeable based on user needs
+  path                = each.value.credential_path
+  username            = "ubuntu"
   key_type            = "ed25519"
-  credential_store_id = var.existing_vault_credential_store_id
+  credential_store_id = local.credential_store_id
   extensions = {
     permit-pty = ""
   }
 }
+
 
 # Boundary target definition
 resource "boundary_target" "this" {
