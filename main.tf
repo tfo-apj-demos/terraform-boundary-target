@@ -122,7 +122,7 @@ resource "boundary_target" "ssh_with_creds" {
 resource "boundary_target" "tcp_with_creds" {
   for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "tcp" && length(service.credential_paths) > 0
+    if service.type == "tcp" && length(service.credential_path) > 0
   }
 
   name = "${var.hostname_prefix}_tcp_access_with_creds"
@@ -134,6 +134,7 @@ resource "boundary_target" "tcp_with_creds" {
   # Inject TCP credentials if available
   injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : null
 }
+
 
 # Boundary target for TCP services without Vault credentials
 resource "boundary_target" "tcp_without_creds" {
