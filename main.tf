@@ -124,10 +124,14 @@ resource "boundary_target" "this" {
 
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Conditional logic to handle injected credentials only when available
+  # Conditional logic to handle credentials based on service type and if required
   injected_application_credential_source_ids = (
-    each.value.type == "ssh" && lookup(each.value, "credential_path", null) != null
-  ) ? [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate.this[each.key].id)] : null
-
+    each.value.type == "ssh" ? 
+      [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate.this[each.key].id)] :
+    (each.value.type == "rdp" || each.value.type == "tcp") && lookup(each.value, "credential_path", null) != null ? 
+      [boundary_credential_library_vault[this.key].id] :
+    null
+  )
+  
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
