@@ -129,7 +129,7 @@ resource "boundary_target" "this" {
     each.value.type == "ssh" ? 
       [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate.this[each.key].id)] :
     (each.value.type == "rdp" || each.value.type == "tcp") && lookup(each.value, "credential_path", null) != null ? 
-      [boundary_credential_library_vault[this.key].id] :
+      [lookup(var.existing_vault_credential_library_ids, each.key, boundary_credential_library_vault[each.key].id)] :
     null
   )
   
