@@ -106,38 +106,43 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
-# Boundary target definition that handles both services with and without credentials
-resource "boundary_target" "this" {
-  for_each = merge(
-    { for service in local.service_by_credential_path : 
-      element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    },
-    { for service in local.service_without_creds : 
-      service.name => service 
-    }
-  )
+# Separate Boundary Target for services that require credentials
+resource "boundary_target" "with_creds" {
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+  }
 
-  name         = "${var.hostname_prefix}_Access"
+  name         = "${var.hostname_prefix}_access_with_creds"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
 
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Conditional logic to handle credentials based on service type and if required
+  # Logic for handling credentials only when necessary
   injected_application_credential_source_ids = (
     each.value.type == "ssh" ? 
-      (contains(keys(var.existing_ssh_credential_library_ids), each.key) ? 
-        [var.existing_ssh_credential_library_ids[each.key]] : 
-        (contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? 
-          [boundary_credential_library_vault_ssh_certificate[each.key].id] : null)) :
+      [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate[each.key].id)] :
     (each.value.type == "tcp" && lookup(each.value, "credential_path", null) != null) ? 
-      (contains(keys(var.existing_vault_credential_library_ids), each.key) ? 
-        [var.existing_vault_credential_library_ids[each.key]] : 
-        (contains(keys(boundary_credential_library_vault), each.key) ? 
-          [boundary_credential_library_vault[each.key].id] : null)) :
+      [boundary_credential_library_vault[each.key].id] :
     null
   )
+
+  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
+}
+
+# Separate Boundary Target for services that do not require credentials
+resource "boundary_target" "without_creds" {
+  for_each = { for service in local.service_without_creds : 
+    service.name => service 
+  }
+
+  name         = "${var.hostname_prefix}_access_without_creds"
+  type         = each.value.type
+  default_port = each.value.port
+  scope_id     = data.boundary_scope.project.id
+
+  host_source_ids = [boundary_host_set_static.this.id]
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
