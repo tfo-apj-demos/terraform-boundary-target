@@ -117,7 +117,7 @@ resource "boundary_target" "this" {
     }
   )
 
-  name         = "${var.hostname_prefix}_${each.key}_access"
+  name         = "${var.hostname_prefix}_Access"
   type         = each.value.type
   default_port = each.value.port
   scope_id     = data.boundary_scope.project.id
