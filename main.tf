@@ -123,7 +123,7 @@ resource "boundary_target" "ssh_with_creds" {
 resource "boundary_target" "tcp_with_creds" {
   for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "tcp" && length(service.credential_paths) > 0
+    if service.type == "tcp" && length(service.credential_path) > 0
   }
 
   name = "${var.hostname_prefix}_tcp_access_with_creds"
