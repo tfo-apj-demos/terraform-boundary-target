@@ -37,20 +37,14 @@ data "boundary_scope" "project" {
 
 # Resources
 
-# Conditionally create the Vault credential store only if it doesn’t exist and credentials are needed
+# Vault credential store for services needing credentials (only if applicable)
 resource "boundary_credential_store_vault" "this" {
-  count           = local.services_needing_creds && var.existing_vault_credential_store_id == "" ? 1 : 0
-  
-  scope_id        = data.boundary_scope.project.id
-  name            = "Credential Store for ${var.hostname_prefix}"
-  
-  address         = var.vault_address
-  token           = var.credential_store_token
-  namespace       = var.vault_namespace != "" ? var.vault_namespace : null
-  tls_skip_verify = var.tls_skip_verify_vault_server
-  ca_cert         = var.vault_ca_cert != "" ? var.vault_ca_cert : null
-
-  worker_filter   = "\"vmware\" in \"/tags/platform\""
+  count = local.services_needing_creds ? 1 : 0
+  name = "Credential Store for ${var.hostname_prefix}"
+  scope_id = data.boundary_scope.project.id
+  address = var.vault_address
+  token = var.credential_store_token
+  namespace = var.vault_namespace != "" ? var.vault_namespace : null
 }
 
 # Host catalog for static hosts
@@ -79,9 +73,10 @@ resource "boundary_host_set_static" "this" {
 
 # Conditionally create a new Vault credential library for TCP services (excluding SSH)
 resource "boundary_credential_library_vault" "this" {
-  for_each = { for service in local.service_by_credential_path :
+  for_each = {
+    for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "tcp" && !contains(keys(var.existing_vault_credential_library_ids), service.name)
+    if service.type == "tcp" && !contains(keys(var.existing_vault_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
   }
 
   name                = "Credential Library for ${each.value.name}"  # Custom name based on the service name
@@ -106,64 +101,49 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
-# target resources for ssh services that require credentials
+# Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
-  for_each = { for service in local.service_by_credential_path :
+  for_each = { for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
     if service.type == "ssh"
   }
 
-  name         = "${var.hostname_prefix}_ssh_access"
-  type         = each.value.type
+  name = "${var.hostname_prefix}_ssh_access"
+  type = each.value.type
   default_port = each.value.port
-  scope_id     = data.boundary_scope.project.id
-
+  scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? 
-    [var.existing_ssh_credential_library_ids[each.key]] : (
-      contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ?
-      [boundary_credential_library_vault_ssh_certificate[each.key].id] : []
-    )
-  
-  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
+  # Inject SSH credentials if provided
+  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : null
 }
 
-# target resources for TCP services that require credentials
+# Boundary target for TCP services with Vault credentials
 resource "boundary_target" "tcp_with_creds" {
   for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "tcp" && lookup(service, "credential_path", null) != null
+    if service.type == "tcp" && length(service.credential_paths) > 0
   }
 
-  name         = "${var.hostname_prefix}_tcp_access_with_creds"
-  type         = each.value.type
+  name = "${var.hostname_prefix}_tcp_access_with_creds"
+  type = each.value.type
   default_port = each.value.port
-  scope_id     = data.boundary_scope.project.id
-
+  scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? 
-    [var.existing_vault_credential_library_ids[each.key]] : (
-      contains(keys(boundary_credential_library_vault), each.key) ?
-      [boundary_credential_library_vault[each.key].id] : []
-    )
-
-  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
+  # Inject TCP credentials if available
+  injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : null
 }
 
-# target resources for TCP services that don't require credentials
+# Boundary target for TCP services without Vault credentials
 resource "boundary_target" "tcp_without_creds" {
   for_each = { for service in local.service_without_creds :
     service.name => service
   }
 
-  name         = "${var.hostname_prefix}_tcp_access_without_creds"
-  type         = each.value.type
+  name = "${var.hostname_prefix}_tcp_access_without_creds"
+  type = each.value.type
   default_port = each.value.port
-  scope_id     = data.boundary_scope.project.id
-
+  scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
-
-  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""
 }
