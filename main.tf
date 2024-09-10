@@ -77,7 +77,7 @@ resource "boundary_host_set_static" "this" {
   host_ids        = [for host in boundary_host_static.this : host.id]
 }
 
-# Conditionally create a new Vault credential library for TCP services
+# Conditionally create a new Vault credential library for TCP services (excluding SSH)
 resource "boundary_credential_library_vault" "this" {
   for_each = { for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
@@ -130,10 +130,12 @@ resource "boundary_target" "this" {
       (contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? 
         [boundary_credential_library_vault_ssh_certificate[each.key].id] : 
         [lookup(var.existing_ssh_credential_library_ids, each.key)]) :
-    (each.value.type == "rdp" || each.value.type == "tcp") && lookup(each.value, "credential_path", null) != null ? 
-      (contains(keys(boundary_credential_library_vault), each.key) ? 
-        [boundary_credential_library_vault[each.key].id] : 
-        [lookup(var.existing_vault_credential_library_ids, each.key)]) :
+    (each.value.type == "tcp") && lookup(each.value, "credential_path", null) != null ? 
+      (
+        contains(keys(boundary_credential_library_vault), each.key) ? 
+          [boundary_credential_library_vault[each.key].id] : 
+          [lookup(var.existing_vault_credential_library_ids, each.key)]
+      ) :
     null
   )
 
