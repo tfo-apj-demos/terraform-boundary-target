@@ -132,7 +132,7 @@ resource "boundary_target" "this" {
     (
       contains(keys(var.existing_vault_credential_library_ids), each.key) ? 
         [var.existing_vault_credential_library_ids[each.key]] : 
-        [boundary_credential_library_vault[each.key].id]
+        (length(boundary_credential_library_vault) > 0 ? [boundary_credential_library_vault[each.key].id] : null)
     ) :
   null
 )
