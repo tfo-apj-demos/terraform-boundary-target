@@ -124,7 +124,10 @@ resource "boundary_target" "with_creds" {
     each.value.type == "ssh" ? 
       [lookup(var.existing_ssh_credential_library_ids, each.key, boundary_credential_library_vault_ssh_certificate[each.key].id)] :
     (each.value.type == "tcp" && lookup(each.value, "credential_path", null) != null) ? 
-      [boundary_credential_library_vault[each.key].id] :
+      (
+        contains(keys(boundary_credential_library_vault), each.key) ? 
+          [boundary_credential_library_vault[each.key].id] : null
+      ) : 
     null
   )
 
