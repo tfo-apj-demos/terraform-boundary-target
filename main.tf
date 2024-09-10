@@ -127,15 +127,15 @@ resource "boundary_target" "this" {
   # Conditional logic to handle credentials based on service type and if required
   injected_application_credential_source_ids = (
     each.value.type == "ssh" ? 
-      (contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? 
-        [boundary_credential_library_vault_ssh_certificate[each.key].id] : 
-        [lookup(var.existing_ssh_credential_library_ids, each.key)]) :
-    (each.value.type == "tcp") && lookup(each.value, "credential_path", null) != null ? 
-      (
-        contains(keys(boundary_credential_library_vault), each.key) ? 
-          [boundary_credential_library_vault[each.key].id] : 
-          [lookup(var.existing_vault_credential_library_ids, each.key)]
-      ) :
+      (contains(keys(var.existing_ssh_credential_library_ids), each.key) ? 
+        [var.existing_ssh_credential_library_ids[each.key]] : 
+        (contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? 
+          [boundary_credential_library_vault_ssh_certificate[each.key].id] : null)) :
+    (each.value.type == "tcp" && lookup(each.value, "credential_path", null) != null) ? 
+      (contains(keys(var.existing_vault_credential_library_ids), each.key) ? 
+        [var.existing_vault_credential_library_ids[each.key]] : 
+        (contains(keys(boundary_credential_library_vault), each.key) ? 
+          [boundary_credential_library_vault[each.key].id] : null)) :
     null
   )
 
