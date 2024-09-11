@@ -109,7 +109,7 @@ resource "boundary_target" "ssh_with_creds" {
     if service.type == "ssh"
   }
 
-  name = "${var.hostname_prefix}_ssh_access"
+  name = "${var.hostname_prefix}"
   type = each.value.type
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
@@ -128,7 +128,7 @@ resource "boundary_target" "tcp_with_creds" {
     if service.type == "tcp" && length(service.credential_path) > 0
   }
 
-  name = "${var.hostname_prefix}_tcp_access_with_creds"
+  name = "${var.hostname_prefix}"
   type = each.value.type
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
@@ -141,13 +141,13 @@ resource "boundary_target" "tcp_with_creds" {
 }
 
 
-# Boundary target for TCP services without Vault credentials
+# Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
   for_each = { for service in local.service_without_creds :
     service.name => service
   }
 
-  name = "${var.hostname_prefix}_tcp_access_without_creds"
+  name = "${var.hostname_prefix}"
   type = each.value.type
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
