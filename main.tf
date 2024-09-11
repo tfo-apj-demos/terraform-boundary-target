@@ -121,6 +121,18 @@ resource "boundary_target" "ssh_with_creds" {
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
 
+# Boundary alias for SSH services needing credentials
+resource "boundary_alias_target" "ssh_with_creds_alias" {
+  for_each = { for host in boundary_host_static : host.key => host }
+
+  name = "${each.value.name}"
+  description = "Alias for ${each.value.name} SSH access"
+  scope_id = data.boundary_scope.project.id
+  value = "${each.value.address}"
+  destination_id = boundary_target.ssh_with_creds[each.key].id
+  authorize_session_host_id = each.value.id
+}
+
 # Boundary target for TCP services with Vault credentials
 resource "boundary_target" "tcp_with_creds" {
   for_each = { for service in local.service_by_credential_path :
@@ -140,6 +152,17 @@ resource "boundary_target" "tcp_with_creds" {
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
 
+# Boundary alias for TCP services with credentials
+resource "boundary_alias_target" "tcp_with_creds_alias" {
+  for_each = { for host in boundary_host_static : host.key => host }
+
+  name = "${each.value.name}"
+  description = "Alias for ${each.value.name} TCP access with credentials"
+  scope_id = data.boundary_scope.project.id
+  value = "${each.value.address}"
+  destination_id = boundary_target.tcp_with_creds[each.key].id
+  authorize_session_host_id = each.value.id
+}
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
@@ -154,4 +177,16 @@ resource "boundary_target" "tcp_without_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
+}
+
+# Boundary alias for TCP services without credentials
+resource "boundary_alias_target" "tcp_without_creds_alias" {
+  for_each = { for host in boundary_host_static : host.key => host }
+
+  name = "${each.value.name}"
+  description = "Alias for ${each.value.name}"
+  scope_id = data.boundary_scope.project.id
+  value = "${each.value.address}"
+  destination_id = boundary_target.tcp_without_creds[each.key].id
+  authorize_session_host_id = each.value.id
 }
