@@ -95,5 +95,5 @@ variable "existing_ssh_credential_library_ids" {
 variable "host_catalog_id" {
   description = "The ID of an existing host catalog to use. If not provided, the module will create one."
   type        = string
-  default     = null  # Optional, so users can provide it or let the module create it
+  default     = null # Optional, so users can provide it or let the module create it
 }
