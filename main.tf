@@ -131,7 +131,10 @@ resource "boundary_target" "ssh_with_creds" {
 
 # Boundary alias for SSH services needing credentials
 resource "boundary_alias_target" "ssh_with_creds_alias" {
-  for_each = boundary_host_static.this
+  for_each = {
+    for host_key, host in boundary_host_static.this : host_key => host
+    if local.target_map[host_key].ssh_target != null
+  }
 
   name = "${each.value.name}_ssh_alias"
   description = "Alias for ${each.value.name} SSH access"
@@ -162,7 +165,10 @@ resource "boundary_target" "tcp_with_creds" {
 
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
-  for_each = boundary_host_static.this
+  for_each = {
+    for host_key, host in boundary_host_static.this : host_key => host
+    if local.target_map[host_key].tcp_with_creds_target != null
+  }
 
   name = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
@@ -189,7 +195,10 @@ resource "boundary_target" "tcp_without_creds" {
 
 # Boundary alias for TCP services without credentials
 resource "boundary_alias_target" "tcp_without_creds_alias" {
-  for_each = boundary_host_static.this
+  for_each = {
+    for host_key, host in boundary_host_static.this : host_key => host
+    if local.target_map[host_key].tcp_without_creds_target != null
+  }
 
   name = "${each.value.name}_tcp_without_creds_alias"
   description = "Alias for ${each.value.name} TCP access without credentials"
