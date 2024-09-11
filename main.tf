@@ -22,6 +22,13 @@ locals {
 
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
+
+  target_map = {
+    for host_key, host in boundary_host_static.this : host_key => {
+      ssh_target  = boundary_target.ssh_with_creds[lookup(var.services, host_key, null)].id,
+      tcp_with_creds_target = boundary_target.tcp_with_creds[lookup(var.services, host_key, null)].id,
+      tcp_without_creds_target = boundary_target.tcp_without_creds[lookup(var.services, host_key, null)].id
+    }
 }
 
 # Data Sources to get the organizational and project scopes
@@ -125,11 +132,11 @@ resource "boundary_target" "ssh_with_creds" {
 resource "boundary_alias_target" "ssh_with_creds_alias" {
   for_each = boundary_host_static.this
 
-  name = "${each.value.name}"
-  description = "Alias for ${each.value.name}"
+  name = "${each.value.name}_ssh_alias"
+  description = "Alias for ${each.value.name} SSH access"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
-  destination_id = boundary_target.ssh_with_creds[each.key].id
+  destination_id = local.target_map[each.key].ssh_target
   authorize_session_host_id = each.value.id
 }
 
@@ -156,11 +163,11 @@ resource "boundary_target" "tcp_with_creds" {
 resource "boundary_alias_target" "tcp_with_creds_alias" {
   for_each = boundary_host_static.this
 
-  name = "${each.value.name}"
-  description = "${each.value.name}"
+  name = "${each.value.name}_tcp_with_creds_alias"
+  description = "Alias for ${each.value.name} TCP access with credentials"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
-  destination_id = boundary_target.tcp_with_creds[each.key].id
+  destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
 
@@ -183,10 +190,10 @@ resource "boundary_target" "tcp_without_creds" {
 resource "boundary_alias_target" "tcp_without_creds_alias" {
   for_each = boundary_host_static.this
 
-  name = "${each.value.name}"
-  description = "${each.value.name}"
+  name = "${each.value.name}_tcp_without_creds_alias"
+  description = "Alias for ${each.value.name} TCP access without credentials"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
-  destination_id = boundary_target.tcp_without_creds[each.key].id
+  destination_id = local.target_map[each.key].tcp_without_creds_target
   authorize_session_host_id = each.value.id
 }
