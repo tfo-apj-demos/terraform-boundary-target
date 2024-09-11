@@ -16,15 +16,3 @@ output "host_catalog_id" {
 output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
 }
-
-output "nsx_target_map_debug" {
-  value = local.target_map["VMware NSX"]
-}
-
-output "vault_target_map_debug" {
-  value = local.target_map["Vault Server"]
-}
-
-output "vcenter_target_map_debug" {
-  value = local.target_map["VMware vCenter"]
-}
