@@ -123,10 +123,10 @@ resource "boundary_target" "ssh_with_creds" {
 
 # Boundary alias for SSH services needing credentials
 resource "boundary_alias_target" "ssh_with_creds_alias" {
-  for_each = { for host in boundary_host_static : host.key => host }
+  for_each = boundary_host_static.this
 
   name = "${each.value.name}"
-  description = "Alias for ${each.value.name} SSH access"
+  description = "Alias for ${each.value.name}"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
   destination_id = boundary_target.ssh_with_creds[each.key].id
@@ -154,10 +154,10 @@ resource "boundary_target" "tcp_with_creds" {
 
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
-  for_each = { for host in boundary_host_static : host.key => host }
+  for_each = boundary_host_static.this
 
   name = "${each.value.name}"
-  description = "Alias for ${each.value.name} TCP access with credentials"
+  description = "${each.value.name}"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
   destination_id = boundary_target.tcp_with_creds[each.key].id
@@ -181,10 +181,10 @@ resource "boundary_target" "tcp_without_creds" {
 
 # Boundary alias for TCP services without credentials
 resource "boundary_alias_target" "tcp_without_creds_alias" {
-  for_each = { for host in boundary_host_static : host.key => host }
+  for_each = boundary_host_static.this
 
   name = "${each.value.name}"
-  description = "Alias for ${each.value.name}"
+  description = "${each.value.name}"
   scope_id = data.boundary_scope.project.id
   value = "${each.value.address}"
   destination_id = boundary_target.tcp_without_creds[each.key].id
