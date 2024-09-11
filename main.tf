@@ -25,9 +25,9 @@ locals {
 
   target_map = {
     for host_key, host in boundary_host_static.this : host_key => {
-      ssh_target  = boundary_target.ssh_with_creds[lookup(var.services, host_key, null)].id,
-      tcp_with_creds_target = boundary_target.tcp_with_creds[lookup(var.services, host_key, null)].id,
-      tcp_without_creds_target = boundary_target.tcp_without_creds[lookup(var.services, host_key, null)].id
+      ssh_target  = contains(keys(boundary_target.ssh_with_creds), host_key) ? boundary_target.ssh_with_creds[host_key].id : null,
+      tcp_with_creds_target = contains(keys(boundary_target.tcp_with_creds), host_key) ? boundary_target.tcp_with_creds[host_key].id : null,
+      tcp_without_creds_target = contains(keys(boundary_target.tcp_without_creds), host_key) ? boundary_target.tcp_without_creds[host_key].id : null
     }
   }
 }
