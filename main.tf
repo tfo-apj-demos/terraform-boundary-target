@@ -117,6 +117,8 @@ resource "boundary_target" "ssh_with_creds" {
 
   # Inject SSH credentials if provided
   injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : null
+
+  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
 
 # Boundary target for TCP services with Vault credentials
@@ -133,8 +135,11 @@ resource "boundary_target" "tcp_with_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   # Inject TCP credentials if available
-  injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : null
+  injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : (contains(keys(boundary_credential_library_vault.this), each.key) ? [boundary_credential_library_vault.this[each.key].id] : null)
+
+  ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
+
 
 # Boundary target for TCP services without Vault credentials
 resource "boundary_target" "tcp_without_creds" {
@@ -147,4 +152,6 @@ resource "boundary_target" "tcp_without_creds" {
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
+
+  ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
