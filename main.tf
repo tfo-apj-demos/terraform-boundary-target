@@ -134,8 +134,8 @@ resource "boundary_target" "tcp_with_creds" {
   scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Inject TCP credentials if available
-  injected_application_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : (contains(keys(boundary_credential_library_vault.this), each.key) ? [boundary_credential_library_vault.this[each.key].id] : null)
+  # Broker TCP credentials if provided
+  brokered_credential_source_ids = contains(keys(var.existing_vault_credential_library_ids), each.key) ? [var.existing_vault_credential_library_ids[each.key]] : (contains(keys(boundary_credential_library_vault.this), each.key) ? [boundary_credential_library_vault.this[each.key].id] : null)
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
