@@ -29,6 +29,7 @@ locals {
       tcp_with_creds_target = boundary_target.tcp_with_creds[lookup(var.services, host_key, null)].id,
       tcp_without_creds_target = boundary_target.tcp_without_creds[lookup(var.services, host_key, null)].id
     }
+  }
 }
 
 # Data Sources to get the organizational and project scopes
