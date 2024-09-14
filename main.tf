@@ -126,7 +126,7 @@ resource "boundary_target" "ssh_with_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   # Always associate with the newly created SSH credential library
-  injected_application_credential_source_ids = [boundary_credential_library_vault_ssh_certificate[each.key].id]
+  #injected_application_credential_source_ids = [boundary_credential_library_vault_ssh_certificate[each.key].id]
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
