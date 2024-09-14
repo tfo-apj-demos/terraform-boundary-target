@@ -123,13 +123,11 @@ resource "boundary_target" "ssh_with_creds" {
   scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Inject SSH credentials if provided
-  #injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : null
-  #injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : (contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? [boundary_credential_library_vault_ssh_certificate[each.key].id] : null)
-  injected_application_credential_source_ids = (contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : (length(boundary_credential_library_vault_ssh_certificate) > 0 && contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? [boundary_credential_library_vault_ssh_certificate[each.key].id] : null))
+  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : (length(boundary_credential_library_vault_ssh_certificate) > 0 && contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? [boundary_credential_library_vault_ssh_certificate[each.key].id] : null)
   
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
+
 
 # Boundary alias for SSH services needing credentials
 resource "boundary_alias_target" "ssh_with_creds_alias" {
