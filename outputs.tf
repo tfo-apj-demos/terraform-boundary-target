@@ -17,19 +17,16 @@ output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
 }
 
-# Output the IDs for the SSH credential libraries
 output "ssh_credential_library_ids" {
-  value = [for k, v in boundary_credential_library_vault_ssh_certificate : v.id]
+  value = [for k, v in boundary_credential_library_vault_ssh_certificate : v.id if contains(keys(boundary_credential_library_vault_ssh_certificate), k)]
 }
 
-# Output the SSH targets created with credentials
 output "ssh_targets" {
-  value = [for target in boundary_target.ssh_with_creds : target.id]
+  value = [for k, v in boundary_target.ssh_with_creds : v.id if contains(keys(boundary_target.ssh_with_creds), k)]
 }
 
-# Output a map of all the target keys
 output "ssh_credential_map" {
-  value = { for k, v in boundary_credential_library_vault_ssh_certificate : k => v.id }
+  value = { for k, v in boundary_credential_library_vault_ssh_certificate : k => v.id if contains(keys(boundary_credential_library_vault_ssh_certificate), k) }
 }
 
 
