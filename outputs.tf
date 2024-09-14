@@ -17,14 +17,20 @@ output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
 }
 
-# Output the entire boundary_credential_library_vault_ssh_certificate object, no assumptions about type
-output "ssh_credential_raw" {
-  value = boundary_credential_library_vault_ssh_certificate
+# Output the IDs for the SSH credential libraries
+output "ssh_credential_library_ids" {
+  value = [for k, v in boundary_credential_library_vault_ssh_certificate : v.id]
 }
 
-# Output the entire boundary_target object for ssh_with_creds
-output "ssh_target_raw" {
-  value = boundary_target.ssh_with_creds
+# Output the SSH targets created with credentials
+output "ssh_targets" {
+  value = [for target in boundary_target.ssh_with_creds : target.id]
 }
+
+# Output a map of all the target keys
+output "ssh_credential_map" {
+  value = { for k, v in boundary_credential_library_vault_ssh_certificate : k => v.id }
+}
+
 
 
