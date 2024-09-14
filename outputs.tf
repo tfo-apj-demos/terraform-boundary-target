@@ -18,16 +18,19 @@ output "host_ids" {
 }
 
 output "ssh_credential_library_ids" {
-  value = [for k, v in boundary_credential_library_vault_ssh_certificate : v.id if contains(keys(boundary_credential_library_vault_ssh_certificate), k)]
+  value = [for k in keys(boundary_credential_library_vault_ssh_certificate) : boundary_credential_library_vault_ssh_certificate[k].id]
 }
+
 
 output "ssh_targets" {
-  value = [for k, v in boundary_target.ssh_with_creds : v.id if contains(keys(boundary_target.ssh_with_creds), k)]
+  value = [for k in keys(boundary_target.ssh_with_creds) : boundary_target.ssh_with_creds[k].id]
 }
 
+
 output "ssh_credential_map" {
-  value = { for k, v in boundary_credential_library_vault_ssh_certificate : k => v.id if contains(keys(boundary_credential_library_vault_ssh_certificate), k) }
+  value = { for k in keys(boundary_credential_library_vault_ssh_certificate) : k => boundary_credential_library_vault_ssh_certificate[k].id }
 }
+
 
 
 
