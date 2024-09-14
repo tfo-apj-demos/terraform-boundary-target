@@ -110,6 +110,23 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   }
 }
 
+# Conditionally create a new SSH credential library
+resource "boundary_credential_library_vault_ssh_certificate" "this" {
+  for_each = { for service in local.service_by_credential_path :
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
+    if service.type == "ssh"
+  }
+
+  name                = "SSH Key Signing"
+  path                = each.value.credential_path
+  username            = "ubuntu"
+  key_type            = "ed25519"
+  credential_store_id = local.credential_store_id
+  extensions = {
+    permit-pty = ""
+  }
+}
+
 # Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
   for_each = { for service in local.service_by_credential_path : 
@@ -123,17 +140,11 @@ resource "boundary_target" "ssh_with_creds" {
   scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Inject SSH credentials based on existing or newly created credentials
-  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : (
-    contains(keys(boundary_credential_library_vault_ssh_certificate), each.key) ? [boundary_credential_library_vault_ssh_certificate[each.key].id] : null
-  )
-
+  # Always associate with the newly created SSH credential library
+  injected_application_credential_source_ids = [boundary_credential_library_vault_ssh_certificate[each.key].id]
+  
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
-
-
-
-
 
 # Boundary alias for SSH services needing credentials
 resource "boundary_alias_target" "ssh_with_creds_alias" {
