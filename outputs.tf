@@ -16,3 +16,11 @@ output "host_catalog_id" {
 output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
 }
+
+output "ssh_credential_keys" {
+  value = keys(boundary_credential_library_vault_ssh_certificate)
+}
+
+output "ssh_target_keys" {
+  value = keys(boundary_target.ssh_with_creds)
+}

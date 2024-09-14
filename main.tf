@@ -95,12 +95,13 @@ resource "boundary_credential_library_vault" "this" {
 
 # Conditionally create a new SSH credential library
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
-  for_each = { for service in local.service_by_credential_path :
+  for_each = {
+    for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
+    if service.type == "ssh"
   }
 
-  name                = "SSH Key Signing"
+  name                = "SSH Key Signing for ${each.value.name}"  # Custom name based on the service name
   path                = each.value.credential_path
   username            = "ubuntu"
   key_type            = "ed25519"
@@ -112,12 +113,13 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 
 # Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
-  for_each = { for service in local.service_by_credential_path : 
+  for_each = {
+    for service in local.service_by_credential_path :
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
     if service.type == "ssh"
   }
 
-  name = "${var.hostname_prefix}"
+  name = "${var.hostname_prefix} SSH Access"
   type = each.value.type
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
