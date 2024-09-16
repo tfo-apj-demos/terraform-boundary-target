@@ -158,22 +158,31 @@ resource "boundary_target" "tcp_with_creds" {
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
 
+resource "null_resource" "wait_for_dependencies" {
+  depends_on = [
+    boundary_host_static.this,
+    boundary_target.tcp_with_creds
+  ]
+}
+
+
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
-  depends_on = [boundary_host_static.this, boundary_target.tcp_with_creds]  # Ensure it waits for this resource to be fully created
+  depends_on = [null_resource.wait_for_dependencies]  # Wait for null resource to resolve the dependencies
 
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
     if local.target_map[host_key].tcp_with_creds_target != null
   }
 
-  name        = "${each.value.name}_tcp_with_creds_alias"
-  description = "Alias for ${each.value.name} TCP access with credentials"
-  scope_id    = "global"
-  value       = local.services_map[local.host_service_map[each.value.name]].alias  # Now references the correct alias
-  destination_id = local.target_map[each.key].tcp_with_creds_target
+  name                      = "${each.value.name}_tcp_with_creds_alias"
+  description               = "Alias for ${each.value.name} TCP access with credentials"
+  scope_id                  = "global"
+  value                     = local.services_map[local.host_service_map[each.value.name]].alias
+  destination_id            = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
+
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
