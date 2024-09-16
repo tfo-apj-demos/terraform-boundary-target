@@ -39,6 +39,13 @@ locals {
       alias = service.alias
     }
   }
+
+  ssh_credential_library_ids = var.existing_ssh_credential_library_ids != null ? var.existing_ssh_credential_library_ids : {
+    for service in local.service_by_credential_path : 
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[service.name].id
+    if service.type == "ssh"
+  }
+  
 }
 
 # Data Sources to get the organizational and project scopes
@@ -107,18 +114,20 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   for_each = {
     for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "ssh"
+    if service.type == "ssh" && var.existing_ssh_credential_library_ids == null  # Only create if no existing credentials are provided
   }
 
   name                = "SSH Key Signing for ${each.value.name}"  # Custom name based on the service name
   path                = each.value.credential_path
   username            = "ubuntu"
   key_type            = "ed25519"
-  credential_store_id = local.credential_store_id
+  credential_store_id = local.credential_store_id  # Use the correct credential store (existing or newly created)
+  
   extensions = {
     permit-pty = ""
   }
 }
+
 
 # Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
@@ -127,16 +136,16 @@ resource "boundary_target" "ssh_with_creds" {
     if service.type == "ssh"
   }
 
-  name = "${var.hostname_prefix}"
-  type = each.value.type
-  default_port = each.value.port
-  scope_id = data.boundary_scope.project.id
-  host_source_ids = [boundary_host_set_static.this.id]
+  name                      = "${var.hostname_prefix}"
+  type                      = each.value.type
+  default_port              = each.value.port
+  scope_id                  = data.boundary_scope.project.id
+  host_source_ids           = [boundary_host_set_static.this.id]
 
   # Inject SSH credentials if provided
-  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : null
+  injected_application_credential_source_ids = contains(keys(local.ssh_credential_library_ids), each.key) ? [local.ssh_credential_library_ids[each.key]] : null
 
-  ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
+  ingress_worker_filter     = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
 
 # Boundary target for TCP services with Vault credentials
