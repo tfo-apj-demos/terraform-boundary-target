@@ -29,6 +29,10 @@ resource "null_resource" "debug_services_output" {
   }
 }
 
+output "target_map_debug" {
+  value = local.target_map
+}
+
 
 
 
