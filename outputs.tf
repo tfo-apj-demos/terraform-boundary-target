@@ -29,10 +29,6 @@ resource "null_resource" "debug_services_output" {
   }
 }
 
-output "target_map_debug" {
-  value = local.target_map
-}
-
 output "tcp_with_creds_targets" {
   value = boundary_target.tcp_with_creds
 }
