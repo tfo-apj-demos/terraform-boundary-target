@@ -44,8 +44,3 @@ output "injected_ssh_credentials" {
   }
 }
 
-output "target_map_debug" {
-  description = "Mapping of Boundary targets to SSH credentials"
-  value       = local.target_map
-}
-
