@@ -45,5 +45,9 @@ output "services_map_debug" {
   value = local.services_map
 }
 
+output "host_service_map_debug" {
+  value = local.host_service_map
+}
+
 
 
