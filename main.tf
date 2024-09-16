@@ -30,6 +30,7 @@ locals {
       tcp_without_creds_target = contains(keys(boundary_target.tcp_without_creds), host_key) ? boundary_target.tcp_without_creds[host_key].id : null
     }
   }
+  services_map = { for service in var.services : service.name => service }
 }
 
 # Data Sources to get the organizational and project scopes
@@ -151,19 +152,19 @@ resource "boundary_target" "tcp_with_creds" {
 
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
-  depends_on = [ boundary_target.tcp_with_creds ]
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
     if local.target_map[host_key].tcp_with_creds_target != null
   }
 
-  name        = each.value.name
+  name        = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
   scope_id    = data.boundary_scope.project.id
-  value       = var.services[each.key].alias  # Use alias passed in services
+  value       = local.services_map[each.value.name].alias  # Reference alias from services_map
   destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
+
 
 
 
