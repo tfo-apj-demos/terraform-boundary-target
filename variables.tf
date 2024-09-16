@@ -20,10 +20,11 @@ variable "services" {
     name             = string
     type             = string
     port             = number
-    credential_paths = optional(list(string))
+    credential_paths = list(string)
+    alias            = string  # Ensure the alias field is defined here
   }))
-  description = "A list of services to create targets for. Each combination of hosts and service will result in a unique target."
 }
+
 
 variable "hosts" {
   type = list(object({
