@@ -34,7 +34,11 @@ locals {
     for host in var.hosts : host.hostname => var.services[0].name  # Assuming 1-to-1 mapping
   }
   
-  services_map = { for service in var.services : service.name => service }
+  services_map = {
+    for service in var.services : service.name => {
+      alias = service.alias
+    }
+  }
 }
 
 # Data Sources to get the organizational and project scopes
@@ -164,14 +168,10 @@ resource "boundary_alias_target" "tcp_with_creds_alias" {
   name        = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
   scope_id    = data.boundary_scope.project.id
-  value       = local.services_map[local.host_service_map[each.value.name]].alias  # Reference the service name via the host-service map
+  value       = local.services_map[local.host_service_map[each.value.name]].alias  # Now references the correct alias
   destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
-
-
-
-
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
