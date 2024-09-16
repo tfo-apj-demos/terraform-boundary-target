@@ -167,7 +167,7 @@ resource "boundary_alias_target" "tcp_with_creds_alias" {
 
   name        = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
-  scope_id    = data.boundary_scope.project.id
+  scope_id    = "global"
   value       = local.services_map[local.host_service_map[each.value.name]].alias  # Now references the correct alias
   destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
