@@ -22,14 +22,13 @@ locals {
 
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
-
   target_map = {
-    for host_key, host in boundary_host_static.this : host_key => {
-      ssh_target  = contains(keys(boundary_target.ssh_with_creds), host_key) ? boundary_target.ssh_with_creds[host_key].id : null,
-      tcp_with_creds_target = contains(keys(boundary_target.tcp_with_creds), host_key) ? boundary_target.tcp_with_creds[host_key].id : null,
-      tcp_without_creds_target = contains(keys(boundary_target.tcp_without_creds), host_key) ? boundary_target.tcp_without_creds[host_key].id : null
+    for service in local.service_by_credential_path : service.name => {
+      tcp_with_creds_target = try(boundary_target.tcp_with_creds[element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1)].id, null),
+      ssh_target            = try(boundary_target.ssh_with_creds[element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1)].id, null)
     }
   }
+  
   services_map = { for service in var.services : service.name => service }
 }
 
