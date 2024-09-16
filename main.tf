@@ -41,9 +41,9 @@ locals {
   }
 
   ssh_credential_library_ids = merge(
-    var.existing_ssh_credential_library_ids, 
+    var.existing_ssh_credential_library_ids,
     { for service in local.service_by_credential_path : 
-      element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[service.name].id
+      element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1)].id
       if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
     }
   )
@@ -111,7 +111,6 @@ resource "boundary_credential_library_vault" "this" {
   credential_store_id = local.credential_store_id
 }
 
-# Conditionally create a new SSH credential library
 resource "boundary_credential_library_vault_ssh_certificate" "this" {
   for_each = {
     for service in local.service_by_credential_path : 
@@ -123,12 +122,13 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   path                = each.value.credential_path
   username            = "ubuntu"
   key_type            = "ed25519"
-  credential_store_id = local.credential_store_id  # Dynamically resolve the correct credential store
-
+  credential_store_id = local.credential_store_id  # Use the correct credential store
+  
   extensions = {
     permit-pty = ""
   }
 }
+
 
 
 # Boundary target for SSH services needing credentials

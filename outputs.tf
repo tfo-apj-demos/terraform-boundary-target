@@ -27,10 +27,11 @@ output "new_ssh_credential_library_ids" {
   description = "Newly created SSH credential library IDs"
   value = {
     for service in local.service_by_credential_path : 
-    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[service.name].id
-    if service.type == "ssh"
+    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1)].id
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
   }
 }
+
 
 output "existing_ssh_credential_library_ids" {
   description = "Existing SSH credential library IDs"
