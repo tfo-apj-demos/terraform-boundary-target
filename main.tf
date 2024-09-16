@@ -40,11 +40,13 @@ locals {
     }
   }
 
-  ssh_credential_library_ids = var.existing_ssh_credential_library_ids != null ? var.existing_ssh_credential_library_ids : {
-    for service in local.service_by_credential_path : 
-    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[service.name].id
-    if service.type == "ssh"
-  }
+  ssh_credential_library_ids = merge(
+    var.existing_ssh_credential_library_ids, 
+    { for service in local.service_by_credential_path : 
+      element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[service.name].id
+      if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
+    }
+  )
   
 }
 
@@ -114,7 +116,7 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   for_each = {
     for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
-    if service.type == "ssh" && var.existing_ssh_credential_library_ids == null  # Only create if no existing credentials are provided
+    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
   }
 
   name                = "SSH Key Signing for ${each.value.name}"
@@ -122,12 +124,11 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
   username            = "ubuntu"
   key_type            = "ed25519"
   credential_store_id = local.credential_store_id  # Dynamically resolve the correct credential store
-  
+
   extensions = {
     permit-pty = ""
   }
 }
-
 
 
 # Boundary target for SSH services needing credentials
@@ -149,6 +150,7 @@ resource "boundary_target" "ssh_with_creds" {
 
   ingress_worker_filter     = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
 }
+
 
 # Boundary target for TCP services with Vault credentials
 resource "boundary_target" "tcp_with_creds" {
