@@ -113,37 +113,21 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 
 # Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
-  for_each = {
-    for service in local.service_by_credential_path :
+  for_each = { for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
     if service.type == "ssh"
   }
 
-  name = "${var.hostname_prefix} SSH Access"
+  name = "${var.hostname_prefix}"
   type = each.value.type
   default_port = each.value.port
   scope_id = data.boundary_scope.project.id
   host_source_ids = [boundary_host_set_static.this.id]
 
-  # Always associate with the newly created SSH credential library
-  #injected_application_credential_source_ids = [boundary_credential_library_vault_ssh_certificate[each.key].id]
-  
+  # Inject SSH credentials if provided
+  injected_application_credential_source_ids = contains(keys(var.existing_ssh_credential_library_ids), each.key) ? [var.existing_ssh_credential_library_ids[each.key]] : null
+
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\""  # Filter for workers with the "vmware" tag
-}
-
-# Boundary alias for SSH services needing credentials
-resource "boundary_alias_target" "ssh_with_creds_alias" {
-  for_each = {
-    for host_key, host in boundary_host_static.this : host_key => host
-    if local.target_map[host_key].ssh_target != null
-  }
-
-  name = "${each.value.name}_ssh_alias"
-  description = "Alias for ${each.value.name} SSH access"
-  scope_id = data.boundary_scope.project.id
-  value = "${each.value.address}"
-  destination_id = local.target_map[each.key].ssh_target
-  authorize_session_host_id = each.value.id
 }
 
 # Boundary target for TCP services with Vault credentials
@@ -167,18 +151,21 @@ resource "boundary_target" "tcp_with_creds" {
 
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
+  depends_on = [ boundary_target.tcp_with_creds ]
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
     if local.target_map[host_key].tcp_with_creds_target != null
   }
 
-  name = "${each.value.name}_tcp_with_creds_alias"
+  name        = each.value.name
   description = "Alias for ${each.value.name} TCP access with credentials"
-  scope_id = data.boundary_scope.project.id
-  value = "${each.value.address}"
+  scope_id    = data.boundary_scope.project.id
+  value       = var.services[each.key].alias  # Use alias passed in services
   destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
+
+
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
@@ -193,19 +180,4 @@ resource "boundary_target" "tcp_without_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
-}
-
-# Boundary alias for TCP services without credentials
-resource "boundary_alias_target" "tcp_without_creds_alias" {
-  for_each = {
-    for host_key, host in boundary_host_static.this : host_key => host
-    if local.target_map[host_key].tcp_without_creds_target != null
-  }
-
-  name = "${each.value.name}_tcp_without_creds_alias"
-  description = "Alias for ${each.value.name} TCP access without credentials"
-  scope_id = data.boundary_scope.project.id
-  value = "${each.value.address}"
-  destination_id = local.target_map[each.key].tcp_without_creds_target
-  authorize_session_host_id = each.value.id
 }
