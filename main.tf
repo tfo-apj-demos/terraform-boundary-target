@@ -23,9 +23,9 @@ locals {
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
   target_map = {
-    for service in local.service_by_credential_path : service.name => {
-      tcp_with_creds_target = try(boundary_target.tcp_with_creds[service.name].id, null),
-      ssh_target            = try(boundary_target.ssh_with_creds[service.name].id, null)
+    for host_key, host in boundary_host_static.this : host_key => {
+      tcp_with_creds_target = try(boundary_target.tcp_with_creds[host_key].id, null),
+      ssh_target            = try(boundary_target.ssh_with_creds[host_key].id, null)
     }
   }
   
@@ -153,16 +153,17 @@ resource "boundary_target" "tcp_with_creds" {
 resource "boundary_alias_target" "tcp_with_creds_alias" {
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
-    if local.target_map[host_key].tcp_with_creds_target != null  # Make sure host_key matches the target_map key (which is the service name)
+    if local.target_map[host_key].tcp_with_creds_target != null
   }
 
   name        = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
   scope_id    = data.boundary_scope.project.id
-  value       = local.services_map[each.value.name].alias  # Ensure this uses the correct key
-  destination_id = local.target_map[each.key].tcp_with_creds_target  # Ensure this maps correctly to the target
+  value       = local.services_map[each.value.name].alias  # Reference the correct alias
+  destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
+
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
