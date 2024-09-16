@@ -21,10 +21,9 @@ variable "services" {
     type             = string
     port             = number
     credential_paths = list(string)
-    alias            = string  # Ensure the alias field is defined here
+    alias            = optional(string, null)  # Make alias optional
   }))
 }
-
 
 variable "hosts" {
   type = list(object({

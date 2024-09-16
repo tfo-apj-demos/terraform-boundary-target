@@ -117,11 +117,11 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
     if service.type == "ssh" && var.existing_ssh_credential_library_ids == null  # Only create if no existing credentials are provided
   }
 
-  name                = "SSH Key Signing for ${each.value.name}"  # Custom name based on the service name
+  name                = "SSH Key Signing for ${each.value.name}"
   path                = each.value.credential_path
   username            = "ubuntu"
   key_type            = "ed25519"
-  credential_store_id = local.credential_store_id  # Use the correct credential store (existing or newly created)
+  credential_store_id = local.credential_store_id  # Dynamically resolve the correct credential store
   
   extensions = {
     permit-pty = ""
@@ -129,9 +129,11 @@ resource "boundary_credential_library_vault_ssh_certificate" "this" {
 }
 
 
+
 # Boundary target for SSH services needing credentials
 resource "boundary_target" "ssh_with_creds" {
-  for_each = { for service in local.service_by_credential_path : 
+  for_each = { 
+    for service in local.service_by_credential_path : 
     element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => service
     if service.type == "ssh"
   }
