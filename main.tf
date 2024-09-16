@@ -23,9 +23,10 @@ locals {
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
   target_map = {
-    for host_key, host in boundary_host_static.this : host_key => {
-      tcp_with_creds_target = try(boundary_target.tcp_with_creds[host_key].id, null),
-      ssh_target            = try(boundary_target.ssh_with_creds[host_key].id, null)
+    for host in var.hosts : host.hostname => {
+      # Extract the key from the credential path (last part after "creds/")
+      tcp_with_creds_target = try(boundary_target.tcp_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null),
+      ssh_target            = try(boundary_target.ssh_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null)
     }
   }
   
@@ -159,10 +160,12 @@ resource "boundary_alias_target" "tcp_with_creds_alias" {
   name        = "${each.value.name}_tcp_with_creds_alias"
   description = "Alias for ${each.value.name} TCP access with credentials"
   scope_id    = data.boundary_scope.project.id
-  value       = local.services_map[each.value.name].alias  # Reference the correct alias
+  value       = local.services_map[each.value.name].alias
   destination_id = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
+
+
 
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
