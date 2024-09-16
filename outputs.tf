@@ -17,18 +17,6 @@ output "host_ids" {
   value = [for host in boundary_host_static.this : host.id]
 }
 
-resource "null_resource" "debug_output" {
-  provisioner "local-exec" {
-    command = "echo ${jsonencode(local.target_map)} > /tmp/target_map.json"
-  }
-}
-
-resource "null_resource" "debug_services_output" {
-  provisioner "local-exec" {
-    command = "echo ${jsonencode(local.services_map)} > /tmp/services_map.json"
-  }
-}
-
 output "tcp_with_creds_targets" {
   value = boundary_target.tcp_with_creds
 }
