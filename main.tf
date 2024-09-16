@@ -160,7 +160,7 @@ resource "boundary_target" "tcp_with_creds" {
 
 # Boundary alias for TCP services with credentials
 resource "boundary_alias_target" "tcp_with_creds_alias" {
-  depends_on = [boundary_host_static.this]  # Ensure it waits for this resource to be fully created
+  depends_on = [boundary_host_static.this, boundary_target.tcp_with_creds]  # Ensure it waits for this resource to be fully created
 
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
