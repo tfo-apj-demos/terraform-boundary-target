@@ -175,13 +175,14 @@ resource "boundary_target" "tcp_with_creds" {
 resource "boundary_alias_target" "tcp_with_creds_alias" {
   for_each = {
     for host_key, host in boundary_host_static.this : host_key => host
+    if local.target_map[host_key].tcp_with_creds_target != null && local.services_map[local.host_service_map[host_key]].alias != null  # Only create alias if alias is not null
   }
 
   name                      = "${each.value.name}_tcp_with_creds_alias"
   description               = "Alias for ${each.value.name} TCP access with credentials"
   scope_id                  = "global"
-  value                     = local.target_map[each.key].tcp_with_creds_target != null ? local.services_map[local.host_service_map[each.value.name]].alias : ""
-  destination_id            = local.target_map[each.key].tcp_with_creds_target != null ? local.target_map[each.key].tcp_with_creds_target : ""
+  value                     = local.services_map[local.host_service_map[each.value.name]].alias  # Use alias as provided
+  destination_id            = local.target_map[each.key].tcp_with_creds_target
   authorize_session_host_id = each.value.id
 }
 
