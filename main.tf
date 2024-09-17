@@ -25,7 +25,7 @@ locals {
   
   target_map = {
     for host in var.hosts : host.hostname => {
-      tcp_without_creds_target = try(boundary_target.tcp_without_creds[host.hostname].id, null)
+      tcp_without_creds_target = try(boundary_target.tcp_without_creds[host.hostname].id, null),
       # Extract the key from the credential path (last part after "creds/")
       tcp_with_creds_target = try(boundary_target.tcp_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null),
       ssh_target            = try(boundary_target.ssh_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null)
