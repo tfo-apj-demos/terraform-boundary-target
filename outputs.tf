@@ -45,16 +45,27 @@ output "injected_ssh_credentials" {
   }
 }
 
-output "tcp_with_creds_target_debug" {
-  description = "Debug output for tcp_with_creds_target"
-  value       = {
-    for host in var.hosts : host.hostname => try(boundary_target.tcp_with_creds[host.hostname].id, null)
+# Output to debug tcp_without_creds_target with expanded details
+output "tcp_without_creds_target_debug" {
+  description = "Detailed output for tcp_without_creds_target"
+  value = {
+    for host in var.hosts : host.hostname => {
+      "tcp_without_creds_target_id" = try(boundary_target.tcp_without_creds[host.hostname].id, "not created"),
+      "hostname" = host.hostname,
+      "address" = host.address
+    }
   }
 }
 
-output "tcp_without_creds_target_debug" {
-  description = "Debug output for tcp_without_creds_target"
-  value       = {
-    for host in var.hosts : host.hostname => try(boundary_target.tcp_without_creds[host.hostname].id, null)
+# Output to debug tcp_with_creds_target with expanded details
+output "tcp_with_creds_target_debug" {
+  description = "Detailed output for tcp_with_creds_target"
+  value = {
+    for host in var.hosts : host.hostname => {
+      "tcp_with_creds_target_id" = try(boundary_target.tcp_with_creds[host.hostname].id, "not created"),
+      "hostname" = host.hostname,
+      "address" = host.address
+    }
   }
 }
+
