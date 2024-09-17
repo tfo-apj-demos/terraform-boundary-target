@@ -18,12 +18,14 @@ locals {
     name = service.name,
     type = service.type,
     port = service.port
-  } if service.credential_paths == null]
+  } if service.credential_paths == null || length(service.credential_paths) == 0]
 
   # Use the passed existing Vault credential store ID, or fallback to the newly created one, only if credentials are needed
   credential_store_id = local.services_needing_creds ? (var.existing_vault_credential_store_id != "" ? var.existing_vault_credential_store_id : boundary_credential_store_vault.this[0].id) : null
+  
   target_map = {
     for host in var.hosts : host.hostname => {
+      tcp_without_creds_target = try(boundary_target.tcp_without_creds[host.hostname].id, null)
       # Extract the key from the credential path (last part after "creds/")
       tcp_with_creds_target = try(boundary_target.tcp_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null),
       ssh_target            = try(boundary_target.ssh_with_creds[element(split("/", var.services[0].credential_paths[0]), length(split("/", var.services[0].credential_paths[0])) - 1)].id, null)
@@ -190,8 +192,8 @@ resource "boundary_alias_target" "tcp_with_creds_alias" {
 
 # Boundary target for TCP services without Vault credentials (Transparent Sessions where you don't want to broker credentials)
 resource "boundary_target" "tcp_without_creds" {
-  for_each = { for service in local.service_without_creds :
-    service.name => service
+  for_each = { 
+    for service in local.service_without_creds : service.name => service
   }
 
   name = "${var.hostname_prefix}"
@@ -201,4 +203,19 @@ resource "boundary_target" "tcp_without_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
+}
+
+# Boundary alias for TCP services without credentials
+resource "boundary_alias_target" "tcp_without_creds_alias" {
+  for_each = {
+    for host_key, host in boundary_host_static.this : host_key => host
+    if local.target_map[host_key].tcp_without_creds_target != null && local.services_map[local.host_service_map[host_key]].alias != null  # Only create alias if alias is not null
+  }
+
+  name                      = "${each.value.name}_tcp_without_creds_alias"
+  description               = "Alias for ${each.value.name} TCP access without credentials"
+  scope_id                  = "global"
+  value                     = local.services_map[local.host_service_map[each.value.name]].alias  # Use alias as provided
+  destination_id            = local.target_map[each.key].tcp_without_creds_target
+  authorize_session_host_id = each.value.id
 }
