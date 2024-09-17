@@ -20,10 +20,11 @@ variable "services" {
     name             = string
     type             = string
     port             = number
-    credential_paths = list(string)
-    alias            = optional(string, null)  # Make alias optional
+    credential_paths = optional(list(string), [])  # Make optional with default empty list
+    alias            = optional(string, null)  # Optional alias
   }))
 }
+
 
 variable "hosts" {
   type = list(object({
