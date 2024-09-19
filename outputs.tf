@@ -1,71 +1,38 @@
-output "tcp_with_creds_targets" {
-  value = boundary_target.tcp_with_creds
+# Output for TCP with credentials target IDs
+output "tcp_with_creds_target_ids" {
+  value = { for key, target in boundary_target.tcp_with_creds : key => target.id }
 }
 
-output "ssh_with_creds_targets" {
-  value = boundary_target.ssh_with_creds
+# Output for SSH with credentials target IDs
+output "ssh_with_creds_target_ids" {
+  value = { for key, target in boundary_target.ssh_with_creds : key => target.id }
 }
 
-output "target_map_debug" {
-  value = local.target_map
-}
 
-output "services_map_debug" {
-  value = local.services_map
-}
-
-output "host_service_map_debug" {
-  value = local.host_service_map
-}
-
-output "ssh_credential_library_ids" {
-  description = "SSH credential library IDs (existing or newly created)"
-  value       = local.ssh_credential_library_ids
-}
-
-output "new_ssh_credential_library_ids" {
-  description = "Newly created SSH credential library IDs"
+# Debug output to check alias destination ID logic
+output "alias_destination_ids" {
   value = {
-    for service in local.service_by_credential_path : 
-    element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1) => boundary_credential_library_vault_ssh_certificate.this[element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1)].id
-    if service.type == "ssh" && !contains(keys(var.existing_ssh_credential_library_ids), element(split("/", service.credential_path), length(split("/", service.credential_path)) - 1))
-  }
-}
-
-
-output "existing_ssh_credential_library_ids" {
-  description = "Existing SSH credential library IDs"
-  value       = var.existing_ssh_credential_library_ids
-}
-
-output "injected_ssh_credentials" {
-  description = "Injected SSH credentials for Boundary targets"
-  value = {
-    for target_key, target in boundary_target.ssh_with_creds : target_key => target.injected_application_credential_source_ids
-  }
-}
-
-# Output to debug tcp_without_creds_target with expanded details
-output "tcp_without_creds_target_debug" {
-  description = "Detailed output for tcp_without_creds_target"
-  value = {
-    for host in var.hosts : host.hostname => {
-      "tcp_without_creds_target_id" = try(boundary_target.tcp_without_creds[host.hostname].id, "not created"),
-      "hostname" = host.hostname,
-      "address" = host.address
+    for host_key, host in boundary_host_static.this : host_key => {
+      destination_id = contains(keys(boundary_target.tcp_with_creds), host_key) ? boundary_target.tcp_with_creds[host_key].id : contains(keys(boundary_target.ssh_with_creds), host_key) ? boundary_target.ssh_with_creds[host_key].id : null
     }
   }
 }
 
-# Output to debug tcp_with_creds_target with expanded details
-output "tcp_with_creds_target_debug" {
-  description = "Detailed output for tcp_with_creds_target"
-  value = {
-    for host in var.hosts : host.hostname => {
-      "tcp_with_creds_target_id" = try(boundary_target.tcp_with_creds[host.hostname].id, "not created"),
-      "hostname" = host.hostname,
-      "address" = host.address
-    }
-  }
+output "alias_debug_each_key" {
+  value = { for host in boundary_host_static.this : host.name => {
+    tcp_id = lookup(boundary_target.tcp_with_creds, host.name, null),
+    ssh_id = lookup(boundary_target.ssh_with_creds, host.name, null)
+  }}
 }
 
+output "services_needing_creds_debug" {
+  value = local.services_needing_creds
+}
+
+output "existing_infrastructure_debug" {
+  value = var.existing_infrastructure
+}
+
+output "processed_services_debug" {
+  value = local.processed_services
+}

@@ -1,37 +1,6 @@
-variable "injected_credential_library_ids" {
-  type        = list(string)
-  description = "Existing credential libraries that you want to assign to the target. Should only be used with SSH connections."
-  default     = [] #"clvsclt_gmitu8xc09"
-}
-
-variable "brokered_credential_library_ids" {
-  type        = list(string)
-  description = "Existing credential libraries that you want to assign to the target. Should only be used with TCP connections."
-  default     = []
-}
-
 variable "hostname_prefix" {
   type        = string
   description = "A prefix to use for the Boundary host set."
-}
-
-variable "services" {
-  type = list(object({
-    name             = string
-    type             = string
-    port             = number
-    credential_paths = optional(list(string), [])  # Make optional with default empty list
-    alias            = optional(string, null)  # Optional alias
-  }))
-}
-
-
-variable "hosts" {
-  type = list(object({
-    hostname = string
-    address  = string
-  }))
-  description = "The hosts to register as Boundary targets."
 }
 
 variable "project_name" {
@@ -49,52 +18,50 @@ variable "vault_namespace" {
   default = ""
 }
 
-variable "ldap_credential_library" {
-  description = "Determines if the LDAP credential library should be created"
-  type        = bool
-  default     = false
-}
-
 variable "credential_store_token" {
   type    = string
   default = ""
 }
 
-variable "boundary_credential_store_vault_name" {
-  type    = string
-  default = ""
+variable "hosts" {
+  type = list(object({
+    fqdn = string
+  }))
+  description = "The hosts to register as Boundary targets."
 }
 
-variable "tls_skip_verify_vault_server" {
-  type    = bool
-  default = false
+variable "services" {
+  description = "List of services (SSH, TCP, etc.) that need to be exposed via Boundary."
+  type = list(object({
+    type               = string  # The type of service ('ssh' or 'tcp')
+    port               = number  # The port number the service listens on
+    use_existing_creds = bool    # Whether to use existing credential libraries
+    use_vault_creds    = bool    # Whether to create new credential libraries via Vault
+    credential_path    = optional(string, null)  # The Vault credential path (only if use_vault_creds = true)
+  }))
+
+  validation {
+    condition     = alltrue([for s in var.services : !(s.use_existing_creds && s.use_vault_creds)])
+    error_message = "You cannot set both 'use_existing_creds' and 'use_vault_creds' to true for the same service. Choose one."
+  }
+
+  validation {
+    condition     = alltrue([for s in var.services : !s.use_existing_creds || s.credential_path == null])
+    error_message = "You cannot provide a credential_path when 'use_existing_creds' is true. Credential paths are only applicable for services using Vault credentials."
+  }
+
+  validation {
+    condition     = alltrue([for s in var.services : s.use_vault_creds || s.credential_path == null])
+    error_message = "You cannot provide a credential_path unless 'use_vault_creds' is true."
+  }
 }
 
-variable "vault_ca_cert" {
-  type    = string
-  default = ""
-}
-
-variable "existing_vault_credential_store_id" {
-  description = "Optional: ID of an existing Vault credential store. If provided, the module will not create a new credential store."
-  type        = string
-  default     = ""
-}
-
-variable "existing_vault_credential_library_ids" {
-  description = "Optional: Map of existing Vault credential library IDs by service name. If provided, the module will not create new credential libraries for those services."
-  type        = map(string)
-  default     = {}
-}
-
-variable "existing_ssh_credential_library_ids" {
-  description = "Optional: Map of existing SSH credential library IDs by service name. If provided, the module will not create new SSH credential libraries for those services."
-  type        = map(string)
-  default     = {}
-}
-
-variable "host_catalog_id" {
-  description = "The ID of an existing host catalog to use. If not provided, the module will create one."
-  type        = string
-  default     = null # Optional, so users can provide it or let the module create it
+variable "existing_infrastructure" {
+  description = "Optional: Information about pre-existing Vault credential stores and SSH/TCP credential libraries."
+  type = object({
+    vault_credential_store_id = optional(string, null)    # Optional, if we have an existing Vault store
+    ssh_credential_libraries  = optional(map(string), {}) # Optional, map of service name to credential library ID
+    tcp_credential_libraries  = optional(map(string), {}) # Optional, map of service name to credential library ID
+  })
+  default = {}
 }
