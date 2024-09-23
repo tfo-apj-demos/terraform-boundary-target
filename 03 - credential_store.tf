@@ -16,14 +16,14 @@ resource "boundary_credential_library_vault" "tcp" {
     if var.services[0].type == "tcp" && var.services[0].use_vault_creds
   }
 
-  name                = "${var.hostname_prefix}-${each.value.fqdn}-vault-cred-library"
-  description         = "Vault Credential Library for ${each.value.fqdn}"
+  name        = "${var.hostname_prefix}-${each.value.fqdn}-vault-cred-library"
+  description = "Vault Credential Library for ${each.value.fqdn}"
 
   # Check if a new credential store is created or use an existing one
   credential_store_id = length(boundary_credential_store_vault.this) > 0 ? boundary_credential_store_vault.this[0].id : var.existing_infrastructure.vault_credential_store_id
 
-  path                = var.services[0].credential_path
-  http_method         = "GET"  # Depending on Vault API, this can be customized if needed
+  path        = var.services[0].credential_path
+  http_method = "GET" # Depending on Vault API, this can be customized if needed
 }
 
 

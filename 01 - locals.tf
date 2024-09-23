@@ -5,9 +5,9 @@ locals {
   # Process services to ensure that only one credential source is used
   processed_services = [
     for i, host in var.hosts : {
-      fqdn              = host.fqdn
-      type              = var.services[i].type
-      port              = var.services[i].port
+      fqdn               = host.fqdn
+      type               = var.services[i].type
+      port               = var.services[i].port
       use_existing_creds = var.services[i].use_existing_creds
       use_vault_creds    = var.services[i].use_vault_creds
       credential_source  = var.services[i].use_existing_creds ? "existing" : (var.services[i].use_vault_creds ? "vault" : null)
