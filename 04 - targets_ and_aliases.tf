@@ -27,6 +27,7 @@ resource "boundary_target" "tcp_with_creds" {
   name                = var.hostname_prefix
   type                = var.services[0].type
   default_port        = var.services[0].port
+  default_client_port = var.services[0].port
   scope_id            = data.boundary_scope.project.id
   host_source_ids     = [boundary_host_set_static.this.id]
 
