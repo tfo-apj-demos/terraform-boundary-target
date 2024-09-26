@@ -17,7 +17,7 @@ resource "boundary_target" "ssh_with_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   # Inject SSH credentials if provided
-  injected_application_credential_source_ids = local.processed_services[each.key].use_vault_creds ? [local.ssh_credential_library_ids[each.key]] : null
+  injected_application_credential_source_ids = local.hostname_to_service_map[each.key].use_vault_creds ? [local.ssh_credential_library_ids[each.key]] : null
   ingress_worker_filter                      = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
 
