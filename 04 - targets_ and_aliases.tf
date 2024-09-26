@@ -1,8 +1,9 @@
 locals {
   # Map destination IDs using host names
-  destination_ids = {
-    for host in var.hosts : host.fqdn => boundary_target.tcp_with_creds[host.fqdn].id
-  }
+  destination_ids = merge(
+    { for host in var.hosts : host.fqdn => boundary_target.tcp_with_creds[host.fqdn].id if contains(keys(boundary_target.tcp_with_creds), host.fqdn) },
+    { for host in var.hosts : host.fqdn => boundary_target.ssh_with_creds[host.fqdn].id if contains(keys(boundary_target.ssh_with_creds), host.fqdn) }
+  )
 }
 
 # Boundary target for SSH services
@@ -21,7 +22,7 @@ resource "boundary_target" "ssh_with_creds" {
 }
 
 # Boundary target for TCP services
-resource "boundary_target" "tcp_with_creds" {
+resource "boundary_target" "tcp_with_creds" { 
   for_each = { for host in var.hosts : host.fqdn => host if var.services[0].type == "tcp" }
 
   name                = var.hostname_prefix

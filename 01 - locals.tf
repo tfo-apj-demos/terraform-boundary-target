@@ -19,8 +19,9 @@ locals {
 
   # Map hostname to processed service object
   hostname_to_service_map = {
-    for host in var.hosts : host.fqdn => local.processed_services[0]
+    for i, host in var.hosts : host.fqdn => local.processed_services[i]
   }
+
 
   # Map of TCP credential library IDs, merging existing or newly created
   tcp_credential_library_ids = merge(
