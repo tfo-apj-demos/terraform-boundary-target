@@ -1,6 +1,6 @@
 # Vault credential store for services needing credentials
 resource "boundary_credential_store_vault" "this" {
-  count         = local.services_needing_creds ? 1 : 0
+  count         = local.services_needing_creds && lookup(var.existing_infrastructure, "vault_credential_store_id", "") == "" ? 1 : 0
   name          = "Credential Store for ${var.hostname_prefix}"
   scope_id      = data.boundary_scope.project.id
   address       = var.vault_address

@@ -22,7 +22,7 @@ resource "boundary_target" "ssh_with_creds" {
 }
 
 # Boundary target for TCP services
-resource "boundary_target" "tcp_with_creds" { 
+resource "boundary_target" "tcp_with_creds" {
   for_each = { for host in var.hosts : host.fqdn => host if var.services[0].type == "tcp" }
 
   name                = var.hostname_prefix
