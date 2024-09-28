@@ -36,3 +36,7 @@ output "existing_infrastructure_debug" {
 output "processed_services_debug" {
   value = local.processed_services
 }
+
+output "ssh_credential_source_ids" {
+  value = local.ssh_credential_source_ids
+}

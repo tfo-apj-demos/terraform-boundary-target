@@ -36,4 +36,9 @@ locals {
     { for service in local.processed_services : service.fqdn => boundary_credential_library_vault_ssh_certificate.ssh[service.fqdn].id
     if service.type == "ssh" && service.use_vault_creds }
   )
+
+  # Credential source IDs to be injected
+  ssh_credential_source_ids = {
+    for host in var.hosts : host.fqdn => contains(keys(local.ssh_credential_library_ids), host.fqdn) ? local.ssh_credential_library_ids[host.fqdn] : null
+  }
 }
