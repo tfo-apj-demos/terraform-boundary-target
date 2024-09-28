@@ -37,6 +37,6 @@ output "processed_services_debug" {
   value = local.processed_services
 }
 
-output "ssh_credential_source_ids" {
+output "ssh_credential_source_ids_debug" {
   value = local.ssh_credential_source_ids
 }
