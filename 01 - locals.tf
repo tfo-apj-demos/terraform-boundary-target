@@ -38,7 +38,9 @@ locals {
   )
 
   # Credential source IDs to be injected
-  ssh_credential_source_ids = {
-    for host in var.hosts : host.fqdn => contains(keys(local.ssh_credential_library_ids), host.fqdn) ? local.ssh_credential_library_ids[host.fqdn] : null
-  }
+  ssh_credential_source_ids = merge(
+    lookup(var.existing_infrastructure, "ssh_credential_libraries", {}),
+    { for host in var.hosts : host.fqdn => lookup(boundary_credential_library_vault_ssh_certificate.ssh, host.fqdn, null)
+      if var.services[0].use_vault_creds }
+  )
 }
