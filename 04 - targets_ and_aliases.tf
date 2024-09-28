@@ -2,13 +2,13 @@ locals {
   # Map destination IDs using host names
   destination_ids = merge(
     { for host in var.hosts : host.fqdn => boundary_target.tcp_with_creds[host.fqdn].id if contains(keys(boundary_target.tcp_with_creds), host.fqdn) },
-    { for host in var.hosts : host.fqdn => boundary_target.ssh_with_creds[host.fqdn].id if contains(keys(boundary_target.ssh_with_creds), host.fqdn) }
+    local.ssh_with_creds_map # Use the map for ssh_with_creds
   )
 }
 
 # Boundary target for SSH services
 resource "boundary_target" "ssh_with_creds" {
-  count = length(var.hosts) > 0 ? 1 : 0
+  count = length(var.hosts) > 0 ? length(var.hosts) : 0
 
   name            = var.hostname_prefix
   type            = var.services[0].type
@@ -17,10 +17,9 @@ resource "boundary_target" "ssh_with_creds" {
   host_source_ids = [boundary_host_set_static.this.id]
 
   # Inject SSH credentials if provided
-  #injected_application_credential_source_ids = local.hostname_to_service_map[each.key].use_vault_creds ? [local.ssh_credential_library_ids[each.key]] : null
-  #injected_application_credential_source_ids = lookup(local.ssh_credential_source_ids, each.key, null)
-  injected_application_credential_source_ids = contains(keys(local.ssh_credential_source_ids), var.hosts[count.index].fqdn) ? [lookup(local.ssh_credential_source_ids, var.hosts[count.index].fqdn, null)] : null
-  ingress_worker_filter                      = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
+  injected_application_credential_source_ids = contains(keys(local.ssh_with_creds_map), var.hosts[count.index].fqdn) ? [lookup(local.ssh_credential_source_ids, var.hosts[count.index].fqdn, null)] : null
+
+  ingress_worker_filter = "\"vmware\" in \"/tags/platform\"" # Filter for workers with the "vmware" tag
 }
 
 # Boundary target for TCP services

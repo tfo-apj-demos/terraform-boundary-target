@@ -43,4 +43,10 @@ locals {
     { for host in var.hosts : host.fqdn => lookup(boundary_credential_library_vault_ssh_certificate.ssh, host.fqdn, null)
       if var.services[0].use_vault_creds }
   )
+
+  # Manually map the FQDN to the created ssh_with_creds target ID, using count.index
+  ssh_with_creds_map = {
+    for i in range(count.index) : var.hosts[i].fqdn => boundary_target.ssh_with_creds[i].id
+    if boundary_target.ssh_with_creds[i].id != null
+  }
 }
