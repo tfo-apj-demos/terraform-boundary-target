@@ -46,7 +46,7 @@ locals {
 
   # Manually map the FQDN to the created ssh_with_creds target ID, using count.index
   ssh_with_creds_map = {
-    for i in range(count.index) : var.hosts[i].fqdn => boundary_target.ssh_with_creds[i].id
+    for i in range(length(var.hosts)) : var.hosts[i].fqdn => boundary_target.ssh_with_creds[i].id
     if boundary_target.ssh_with_creds[i].id != null
   }
 }
