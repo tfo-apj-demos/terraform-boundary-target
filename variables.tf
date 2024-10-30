@@ -1,67 +1,91 @@
-variable "hostname_prefix" {
-  type        = string
-  description = "A prefix to use for the Boundary host set."
-}
-
 variable "project_name" {
   type        = string
   description = "The Boundary project name in which to create the targets and associated resources."
 }
 
 variable "vault_address" {
-  type    = string
-  default = ""
+  type        = string
+  description = "Address of the Vault server for credential management."
+  default     = ""
 }
 
 variable "vault_namespace" {
-  type    = string
-  default = ""
-}
-
-variable "credential_store_token" {
-  type    = string
-  default = ""
+  type        = string
+  description = "Namespace in Vault, if applicable."
+  default     = ""
 }
 
 variable "hosts" {
-  type = list(object({
-    fqdn = string
-  }))
-  description = "The hosts to register as Boundary targets."
+  type        = list(string)
+  description = "List of FQDNs for the hosts."
 }
 
-variable "services" {
-  description = "List of services (SSH, TCP, etc.) that need to be exposed via Boundary."
-  type = list(object({
-    type               = string                 # The type of service ('ssh' or 'tcp')
-    port               = number                 # The port number the service listens on
-    use_existing_creds = bool                   # Whether to use existing credential libraries
-    use_vault_creds    = bool                   # Whether to create new credential libraries via Vault
-    credential_path    = optional(string, null) # The Vault credential path (only if use_vault_creds = true)
-  }))
-
-  validation {
-    condition     = alltrue([for s in var.services : !(s.use_existing_creds && s.use_vault_creds)])
-    error_message = "You cannot set both 'use_existing_creds' and 'use_vault_creds' to true for the same service. Choose one."
-  }
-
-  validation {
-    condition     = alltrue([for s in var.services : !s.use_existing_creds || s.credential_path == null])
-    error_message = "You cannot provide a credential_path when 'use_existing_creds' is true. Credential paths are only applicable for services using Vault credentials."
-  }
-
-  validation {
-    condition     = alltrue([for s in var.services : s.use_vault_creds || s.credential_path == null])
-    error_message = "You cannot provide a credential_path unless 'use_vault_creds' is true."
-  }
+variable "port" {
+  type        = number
+  description = "Port number to use for all hosts (e.g., 22 for SSH, 443 for TCP)."
 }
 
-variable "existing_infrastructure" {
-  description = "Optional: Information about pre-existing Vault credential stores and SSH/TCP credential libraries."
-  type = object({
-    vault_credential_store_id = optional(string, null)    # Optional, if we have an existing Vault store
-    ssh_credential_libraries  = optional(map(string), {}) # Optional, map of service name to credential library ID
-    tcp_credential_libraries  = optional(map(string), {}) # Optional, map of service name to credential library ID
-  })
-  default = {}
+variable "credential_source" {
+  type        = string
+  description = "Type of credential source. Options: 'vault', 'existing'."
+  default     = "existing"
+}
+
+variable "credential_store_token" {
+  type        = string
+  description = "Token for Vault credential store."
+  default     = ""
+}
+
+variable "credential_path" {
+  type        = string
+  description = "Vault credential path if using Vault credentials."
+  default     = ""
+}
+
+variable "target_type" {
+  type        = string
+  description = "Type of Boundary target. Options: 'ssh', 'tcp'."
+  default     = "tcp"
+}
+
+variable "use_host_set" {
+  type        = bool
+  description = "If true, create a host set and use it in host_source_ids for the target. If false, use a single address per target."
+  default     = true
+}
+
+variable "use_credentials" {
+  type        = bool
+  description = "If true, creates a credential store and library for the target. If false, no credentials are used."
+  default     = true
+}
+
+variable "target_name" {
+  type        = string
+  description = "A unique name for the target, used to differentiate resources in the module."
+}
+
+variable "target_mode" {
+  type        = string
+  description = "Mode for target creation: 'single' for each host individually, 'group' for a group of hosts."
+  default     = "single"
+}
+
+variable "alias_name" {
+  type        = string
+  description = "The name for the target alias. This can be set explicitly to control how the alias appears."
+  default     = ""
+}
+
+variable "existing_credential_store_id" {
+  type        = string
+  description = "Optional ID of an existing Vault credential store to use. If provided, a new credential store will not be created."
+  default     = null
+}
+
+variable "existing_ssh_credential_libraries" {
+  type        = map(string)
+  description = "Map of existing SSH credential library IDs keyed by host FQDN. Used when existing credentials are provided."
+  default     = {}
 }
