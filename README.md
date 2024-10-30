@@ -21,7 +21,7 @@ This Terraform module is designed to create Boundary targets, credential stores,
 
 ```hcl
 module "tcp_target_without_creds" {
-  source        = "github.com/tfo-apj-demos/terraform-boundary-target-refactored"
+  source        = "github.com/tfo-apj-demos/terraform-boundary-target"
   project_name  = "example_project"
   target_name   = "Example TCP Target"
   hosts         = ["example-tcp.target.local"]
@@ -40,7 +40,7 @@ module "tcp_target_without_creds" {
 
 ```hcl
 module "tcp_target_with_vault_creds" {
-  source                 = "github.com/tfo-apj-demos/terraform-boundary-target-refactored"
+  source                 = "github.com/tfo-apj-demos/terraform-boundary-target"
   project_name           = "example_project"
   target_name            = "Example Vault TCP Target"
   hosts                  = ["example-vault-tcp.target.local"]
@@ -64,7 +64,7 @@ module "tcp_target_with_vault_creds" {
 
 ```hcl
 module "ssh_target_with_existing_creds" {
-  source                     = "github.com/tfo-apj-demos/terraform-boundary-target-refactored"
+  source                     = "github.com/tfo-apj-demos/terraform-boundary-target"
   project_name               = "example_project"
   target_name                = "Example SSH Cluster Access"
   hosts                      = ["host1.example-ssh-cluster.local", "host2.example-ssh-cluster.local"]
@@ -88,7 +88,7 @@ module "ssh_target_with_existing_creds" {
 
 ```hcl
 module "rds_target_with_vault_creds" {
-  source                     = "github.com/tfo-apj-demos/terraform-boundary-target-refactored"
+  source                     = "github.com/tfo-apj-demos/terraform-boundary-target"
   project_name               = "example_project"
   target_name                = "Windows RDS Target"
   hosts                      = ["rds-target.example.local"]
@@ -108,6 +108,4 @@ module "rds_target_with_vault_creds" {
   # Alias name for accessing the RDS target
   alias_name = "rds-target.example.local"
 }
-
 ```
-
